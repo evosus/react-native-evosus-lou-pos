@@ -1,0 +1,33 @@
+{
+  "name": "react-native-evosus-lou-pos",
+  "title": "React Native Evosus Lou Pos",
+  "version": "1.0.3",
+  "description": "React Native Extension fo LOU POS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evoshawkins/react-native-evosus-lou-pos.git",
+    "baseUrl": "https://github.com/evoshawkins/react-native-evosus-lou-pos"
+  },
+  "keywords": [
+    "react-native"
+  ],
+  "author": {
+    "name": "Steve Hawkins",
+    "email": "shawkins@evosus.com"
+  },
+  "license": "MIT",
+  "licenseFilename": "LICENSE",
+  "readmeFilename": "README.md",
+  "peerDependencies": {
+    "react": "^16.5.0",
+    "react-native": ">=0.57.0-rc.0 <1.0.x"
+  },
+  "devDependencies": {
+    "react": "^16.5.0",
+    "react-native": "^0.59.4"
+  }
+}

@@ -1,0 +1,5 @@
+rootProject.name = 'example'
+include ':react-native-evosus-lou-pos'
+project(':react-native-evosus-lou-pos').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-evosus-lou-pos/android')
+
+include ':app'
