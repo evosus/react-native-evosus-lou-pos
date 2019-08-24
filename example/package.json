@@ -10,7 +10,7 @@
   "dependencies": {
     "react": "16.8.3",
     "react-native": "0.59",
-    "react-native-evosus-lou-pos": "file:../"
+    "react-native-evosus-lou-pos": "file:.."
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",

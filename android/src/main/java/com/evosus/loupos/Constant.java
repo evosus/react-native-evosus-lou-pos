@@ -6,7 +6,7 @@ public class Constant {
 
     public static final int TRANSACTION_FAILURE = 101; //transaction failure
 
-    public static final int TRANSACTION_TIMEOOUT = 102; //transaction timeout
+    public static final int TRANSACTION_TIMEOUT = 102; //transaction timeout
     
     public static final int TRANSACTION_STATUS = 103; //transaction timeout
 
