@@ -1,5 +1,7 @@
 package com.evosus.loupos;
 
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,8 +12,10 @@ import android.widget.Toast;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
 import com.pax.poslink.CommSetting;
+import com.pax.poslink.LogSetting;
 import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
+import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
@@ -25,6 +29,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+import com.pax.poslink.util.CountRunTime;
 
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -37,6 +42,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     private PosLink posLink = null;
     private static ProcessTransResult ptr;
     private static CommSetting commSetting;
+    private static Boolean bInited = false;
 
     public EvosusLouPosModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -46,18 +52,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     @Override
     public String getName() {
         return "EvosusLouPos";
-    }
-
-    /**
-     * @param stringArgument
-     * @param numberArgument
-     * @param callback
-     */
-
-    @ReactMethod
-    public void sampleMethod(String stringArgument, int numberArgument, Callback callback) {
-        // TODO: Implement some actually useful functionality
-        callback.invoke("Received numberArgument: " + numberArgument + " stringArgument: " + stringArgument);
     }
 
     /**
@@ -91,9 +85,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void creditSale(Integer amount, String referenceNumber, Callback success, Callback error) {
+    public void creditSale(String amount, String referenceNumber, Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -105,7 +99,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount.toString(); // It is expected that $1.23 will arrive as 123, $0.09 as 9
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             posLink.PaymentRequest = paymentRequest;
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
@@ -125,9 +119,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void creditRefund(Integer amount, String referenceNumber, Callback success, Callback error) {
+    public void creditRefund(String amount, String referenceNumber, Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -139,7 +133,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
             paymentRequest.TransType = paymentRequest.ParseTransType("REFUND");
             paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount.toString(); // It is expected that $1.23 will arrive as 123, $0.09 as 9
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             posLink.PaymentRequest = paymentRequest;
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
@@ -159,9 +153,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void creditVoid(Integer amount, String referenceNumber, Callback success, Callback error) {
+    public void creditVoid(String amount, String referenceNumber, Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -193,9 +187,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void creditForceAuth(Integer amount, String referenceNumber, String authCode, Callback success, Callback error) {
+    public void creditForceAuth(String amount, String referenceNumber, String authCode, Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -208,7 +202,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TransType = paymentRequest.ParseTransType("FORCEAUTH");
             paymentRequest.AuthCode = authCode;
             paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount.toString(); // It is expected that $1.23 will arrive as 123, $0.09 as 9
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             posLink.PaymentRequest = paymentRequest;
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
@@ -228,9 +222,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void debitSale(Integer amount, String referenceNumber, Callback success, Callback error) {
+    public void debitSale(String amount, String referenceNumber, Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -242,7 +236,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount.toString(); // It is expected that $1.23 will arrive as 123, $0.09 as 9
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             posLink.PaymentRequest = paymentRequest;
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
@@ -262,9 +256,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param error
      */
     @ReactMethod
-    public void debitRefund(Integer amount, String referenceNumber, Callback success, Callback error) {
+    public void debitRefund(String amount, String referenceNumber, final Callback success, final Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -276,7 +270,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
             paymentRequest.TransType = paymentRequest.ParseTransType("REFUND");
             paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount.toString(); // It is expected that $1.23 will arrive as 123, $0.09 as 9
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             posLink.PaymentRequest = paymentRequest;
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
@@ -290,15 +284,19 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     }
 
     /**
-     * @param Type
+     * @param CommType
      * @param Timeout
      * @param IPAddress
      * @param EnableProxy
      * @param success
      * @param error
      */
+    @ReactMethod
     public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Callback success, final Callback error) {
         // Type - one of USB, TCP
+
+        if (!bInited)
+            initPOSLink();
 
         final String commType = CommType;
         final String timeout = Timeout;
@@ -327,13 +325,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                     return;
                 }
 
-                commSetting = new CommSetting();
+                String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
+                CommSetting commSetting =SettingINI.getCommSettingFromFile(iniFile);
+
                 commSetting.setType(commType);
                 commSetting.setTimeOut(timeout);
                 commSetting.setEnableProxy(enableProxy);
                 commSetting.setDestIP(ipAddress);
                 commSetting.setBaudRate("9600");
+                commSetting.setDestPort("10009");
                 commSetting.setSerialPort("COM1");
+                commSetting.SaveCommSettingFile();
+
+                SettingINI.saveCommSettingToFile(iniFile, commSetting);
+                posLink.appDataFolder = getCurrentActivity().getApplicationContext().getFilesDir().getAbsolutePath();
                 posLink.SetCommSetting(commSetting);
                 success.invoke("connected");
                 return;
@@ -342,14 +347,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     }
 
     private void initPOSLink() {
-        POSLinkCreatorWrapper.createSync(getReactApplicationContext(), new AppThreadPool.FinishInMainThreadCallback<PosLink>() {
-            @Override
-            public void onFinish(PosLink result) {
-                posLink = result;
-                posLink.SetCommSetting(commSetting);
-                return;
-            }
-        });
+        bInited = true;
+        AppThreadPool.getInstance();
+        commSetting = setupSetting(getReactApplicationContext());
+        POSLinkAndroid.init(getReactApplicationContext(), commSetting);
     }
 
     /**
@@ -359,27 +360,36 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void batchClose(Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
+
+        processBatch();
+    }
+
+    private void processBatch() {
 
         // Recommend to use single thread pool instead.
-        mHandler.postDelayed(MyRunnable, 25);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
 
-        try {
-            Thread.sleep(30);
+                BatchRequest batchRequest = new BatchRequest();
+                batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
+                batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
 
-            BatchRequest batchRequest = new BatchRequest();
-            batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
-            batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
-            posLink.BatchRequest = batchRequest;
+                posLink.BatchRequest = batchRequest;
 
-            // ProcessTrans is Blocking call, will return when the transaction is complete.
-            ptr = posLink.ProcessTrans();
-
-            mHandler.removeCallbacks(MyRunnable);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+                // ProcessTrans is Blocking call, will return when the transaction is complete.
+                CountRunTime.start("Manage");
+                ptr = posLink.ProcessTrans();
+                CountRunTime.countPoint("Manage");
+                getCurrentActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        taskCompleted(posLink);
+                    }
+                });
+            }
+        }).start();
     }
 
     /**
@@ -387,17 +397,21 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @return
      */
     private boolean validatePOSLink(Callback error) {
+
+        if (!bInited)
+            initPOSLink();
+
         if (posLink == null) {
             Toast.makeText(getReactApplicationContext(), "Cannot initialize POSLink", Toast.LENGTH_LONG);
             error.invoke("Cannot initialize POSLink");
-            return true;
+            return false;
         }
         if (posLink.GetCommSetting() == null) {
             Toast.makeText(getReactApplicationContext(), "POSLink missing Communication Settings", Toast.LENGTH_LONG);
             error.invoke("POSLink missing Communication Settings");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
 
@@ -408,7 +422,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void rebootQ20(Callback success, Callback error) {
 
-        if (validatePOSLink(error)) return;
+        if (!validatePOSLink(error)) return;
 
         // Recommend to use single thread pool instead.
         mHandler.postDelayed(MyRunnable, 25);
@@ -499,22 +513,70 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
 
     };
-//
-//    void Foo(Callback successCB, Callback errorCB) {
-//        class OneShotTask implements Runnable {
-//            Callback success;
-//            Callback error;
-//            OneShotTask(Callback successC, Callback errorC) {
-//                success = successC;
-//                error = errorC;
-//            }
-//            public void run() {
-//                someFunc(str);
-//            }
-//        }
-//        Thread t = new Thread(new OneShotTask(successCB, errorCB));
-//        t.start();
-//    }
+
+    class OneShotPaymentTask implements Runnable {
+        int lastStatus = -1;
+        Callback success;
+        Callback error;
+        OneShotPaymentTask(Callback successC, Callback errorC) {
+            success = successC;
+            error = errorC;
+        }
+        public void run() {
+            int status;
+
+            if (posLink != null) {
+                try {
+                    Thread.sleep(0);
+
+                    status = posLink.GetReportedStatus();
+                    if (status != lastStatus) {
+                        switch (status) {
+                            case 0:
+                                Message msg0 = new Message();
+                                msg0.what = Constant.TRANSACTION_STATUS;
+                                msg0.obj = "Ready for CARD INPUT";
+                                mHandler.sendMessage(msg0);
+                                break;
+                            case 1:
+                                Message msg1 = new Message();
+                                msg1.what = Constant.TRANSACTION_STATUS;
+                                msg1.obj = "Ready for PIN ENTRY";
+                                mHandler.sendMessage(msg1);
+                                break;
+                            case 2:
+                                Message msg2 = new Message();
+                                msg2.what = Constant.TRANSACTION_STATUS;
+                                msg2.obj = "Ready for SIGNATURE";
+                                mHandler.sendMessage(msg2);
+                                break;
+                            case 3:
+                                Message msg3 = new Message();
+                                msg3.what = Constant.TRANSACTION_STATUS;
+                                msg3.obj = "Ready for ONLINE PROCESSING";
+                                mHandler.sendMessage(msg3);
+                                break;
+                            case 4:
+                                Message msg4 = new Message();
+                                msg4.what = Constant.TRANSACTION_STATUS;
+                                msg4.obj = "Ready for NEW CARD INPUT";
+                                mHandler.sendMessage(msg4);
+                                break;
+                            default:
+                                break;
+                        }
+
+                        lastStatus = status;
+                    }
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            mHandler.postDelayed(this, 500);
+        }
+    }
 
     private int lastReportedStatus = -1;
     final Runnable MyRunnable = new Runnable() {
@@ -639,9 +701,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                     if (msg.obj instanceof ManageResponse)
                         Toast.makeText(getReactApplicationContext(), ((ManageResponse)msg.obj).ResultCode +'\n' + ((ManageResponse)msg.obj).ResultTxt, Toast.LENGTH_LONG).show();
                     else if (msg.obj instanceof PaymentResponse)
-                        Toast.makeText(getReactApplicationContext(), ((PaymentResponse)msg.obj).ResultCode +'\n' + ((ManageResponse)msg.obj).ResultTxt, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getReactApplicationContext(), ((PaymentResponse)msg.obj).ResultCode +'\n' + ((PaymentResponse)msg.obj).ResultTxt, Toast.LENGTH_LONG).show();
                     else if (msg.obj instanceof BatchResponse)
-                        Toast.makeText(getReactApplicationContext(), ((BatchResponse)msg.obj).ResultCode +'\n' + ((ManageResponse)msg.obj).ResultTxt, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getReactApplicationContext(), ((BatchResponse)msg.obj).ResultCode +'\n' + ((BatchResponse)msg.obj).ResultTxt, Toast.LENGTH_LONG).show();
                 }
                 break;
             case Constant.TRANSACTION_TIMEOUT:
@@ -666,6 +728,41 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         Matcher matcher = IPv4_PATTERN.matcher(ipaddress);
 
         return matcher.matches();
+    }
+
+    private static CommSetting setupSetting(Context context) {
+        String settingIniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
+        CommSetting commSetting = SettingINI.getCommSettingFromFile(settingIniFile);
+
+        if (Build.MODEL.startsWith("E")) {
+            commSetting.setType(CommSetting.USB);
+        } else if (Build.MODEL.startsWith("A9")){
+            commSetting.setType(CommSetting.AIDL);
+        } else {
+            commSetting.setType(CommSetting.TCP);
+        }
+        commSetting.setTimeOut("60000");
+        commSetting.setSerialPort("COM1");
+        commSetting.setBaudRate("9600");
+        commSetting.setDestIP("172.16.20.15");
+        commSetting.setDestPort("10009");
+        commSetting.setMacAddr("");
+        if (Build.MODEL.startsWith("E")) {
+            commSetting.setEnableProxy(true);
+        } else {
+            commSetting.setEnableProxy(false);
+        }
+        SettingINI.saveCommSettingToFile(settingIniFile, commSetting);
+
+        if (!SettingINI.loadSettingFromFile(settingIniFile)) {
+            //String LogOutputFile = getApplicationContext().getFilesDir().getAbsolutePath() + "/POSLog.txt";
+            String LogOutputFile = context.getExternalFilesDir(null).getPath();
+            LogSetting.setLogMode(true);
+            LogSetting.setLevel(LogSetting.LOGLEVEL.DEBUG);
+            LogSetting.setOutputPath(LogOutputFile);
+            SettingINI.saveLogSettingToFile(settingIniFile);
+        }
+        return SettingINI.getCommSettingFromFile(settingIniFile);
     }
 
 }
