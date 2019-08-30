@@ -142,7 +142,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
             PaymentRequest paymentRequest = new PaymentRequest();
             paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("REFUND");
+            paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
@@ -179,7 +179,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             PaymentRequest paymentRequest = new PaymentRequest();
             paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
             paymentRequest.TransType = paymentRequest.ParseTransType("VOID");
-            paymentRequest.ECRRefNum = referenceNumber;
+            paymentRequest.OrigECRRefNum = referenceNumber;
+            paymentRequest.ECRRefNum = "VBVBVB";
 
             processPayment(paymentRequest);
 
@@ -239,7 +240,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(error)) return;
 
-        success= successCb;
+        success = successCb;
         error = errorCb;
 
         // Recommend to use single thread pool instead.
@@ -287,7 +288,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
             PaymentRequest paymentRequest = new PaymentRequest();
             paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("REFUND");
+            paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
@@ -406,7 +407,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                    taskCompleted(posLink);
+                        taskCompleted(posLink);
                     }
                 });
             }
@@ -429,7 +430,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                    taskCompleted(posLink);
+                        taskCompleted(posLink);
                     }
                 });
             }
@@ -452,7 +453,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                    taskCompleted(posLink);
+                        taskCompleted(posLink);
                     }
                 });
             }
