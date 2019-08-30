@@ -11,6 +11,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
@@ -20,6 +22,7 @@ import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
 import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
+import com.pax.poslink.PaymentRequest.CommercialCard;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
@@ -33,8 +36,9 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 import com.pax.poslink.util.CountRunTime;
-
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,9 +94,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param errorCb
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void creditSale(String amount, String referenceNumber, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        CommercialCard pComm = getCommercialCard(commercialCard);
 
         success = successCb;
         error = errorCb;
@@ -199,7 +205,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param errorCb
      */
     @ReactMethod
-    public void creditForceAuth(String amount, String referenceNumber, String authCode, Callback successCb, Callback errorCb) {
+    public void creditForceAuth(String amount, String referenceNumber, String authCode, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
 
@@ -236,9 +242,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param errorCb
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void debitSale(String amount, String referenceNumber, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        CommercialCard pComm = getCommercialCard(commercialCard);
 
         success = successCb;
         error = errorCb;
@@ -904,6 +912,49 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             SettingINI.saveLogSettingToFile(settingIniFile);
         }
         return SettingINI.getCommSettingFromFile(settingIniFile);
+    }
+
+    private CommercialCard getCommercialCard(ReadableMap commercialCard) {
+
+        // Init return object
+        CommercialCard pComm = new CommercialCard();
+
+        pComm.CustomerCode = commercialCard.getString("CustomerCode");
+        pComm.PONumber = commercialCard.getString("PONumber");
+        pComm.TaxExempt = commercialCard.getString("TaxExempt");
+
+        ReadableArray taxDetails = commercialCard.getArray("TaxDetails");
+        List taxDetailList = new ArrayList<CommercialCard.TaxDetail>();
+        for (int i = 0; i < taxDetailList.size() ; i++) {
+            ReadableMap taxItem = taxDetails.getMap(i);
+            CommercialCard.TaxDetail taxDetail = new CommercialCard.TaxDetail();
+            taxDetail.TaxAmount = taxItem.getString("TaxAmount");
+            taxDetail.CustomerTaxID = taxItem.getString("CustomerTaxID");
+            taxDetail.TaxRate = taxItem.getString("TaxRate");
+            taxDetail.VATInvoiceNumber = taxItem.getString("VATInvoiceNumber");
+            taxDetailList.add(taxDetail);
+        }
+        // Set TaxDetails
+        pComm.TaxDetails = taxDetailList;
+
+        ReadableArray lineItemDetails = commercialCard.getArray("LineItemDetails");
+        List lineItemDetailList = new ArrayList<CommercialCard.LineItemDetail>();
+        for (int i = 0; i < lineItemDetails.size() ; i++) {
+            ReadableMap lineItem = lineItemDetails.getMap(i);
+            CommercialCard.LineItemDetail lineItemDetail = new CommercialCard.LineItemDetail();
+            lineItemDetail.ProductCode = lineItem.getString("ProductCode");
+            lineItemDetail.ItemCommodityCode = lineItem.getString("ItemCommodityCode");
+            lineItemDetail.ItemDescription = lineItem.getString("ItemDescription");
+            lineItemDetail.ItemQuantity = lineItem.getString("ItemQuantity");
+            lineItemDetail.ItemUnitPrice = lineItem.getString("ItemUnitPrice");
+            lineItemDetail.LineItemTotal = lineItem.getString("LineItemTotal");
+            lineItemDetailList.add(lineItemDetail);
+        }
+
+        // Set LineItemDetails
+        pComm.LineItemDetails = lineItemDetailList;
+
+        return pComm;
     }
 
 }
