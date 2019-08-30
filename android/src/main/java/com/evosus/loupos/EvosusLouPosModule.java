@@ -94,7 +94,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(error)) return;
 
-        success= successCb;
+        success = successCb;
         error = errorCb;
 
         // Recommend to use single thread pool instead.
