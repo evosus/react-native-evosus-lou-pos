@@ -86,13 +86,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, Callback success, Callback error) {
+    public void creditSale(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -119,13 +122,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void creditRefund(String amount, String referenceNumber, Callback success, Callback error) {
+    public void creditRefund(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -152,13 +158,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void creditVoid(String amount, String referenceNumber, Callback success, Callback error) {
+    public void creditVoid(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -185,13 +194,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param amount
      * @param referenceNumber
      * @param authCode
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void creditForceAuth(String amount, String referenceNumber, String authCode, Callback success, Callback error) {
+    public void creditForceAuth(String amount, String referenceNumber, String authCode, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -219,13 +231,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, Callback success, Callback error) {
+    public void debitSale(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -252,13 +267,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param success
-     * @param error
+     * @param successCb
+     * @param errorCb
      */
     @ReactMethod
-    public void debitRefund(String amount, String referenceNumber, final Callback success, final Callback error) {
+    public void debitRefund(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
+
+        success= successCb;
+        error = errorCb;
 
         // Recommend to use single thread pool instead.
         OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
@@ -758,19 +776,31 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("HostResponse", paymentResponse.HostResponse);
                         map.putString("Message", paymentResponse.Message);
                         map.putString("Timestamp", paymentResponse.Timestamp);
-                        map.putString("RequestedAmount", paymentResponse.RequestedAmount);
-                        map.putString("RemainingBalance", paymentResponse.RemainingBalance);
+                        if (paymentResponse.RequestedAmount == "")
+                            map.putString("RequestedAmount", "0");
+                        else
+                            map.putString("RequestedAmount", paymentResponse.RequestedAmount);
+                        if (paymentResponse.RemainingBalance == "")
+                            map.putString("RemainingBalance", "0");
+                        else
+                            map.putString("RemainingBalance", paymentResponse.RemainingBalance);
                         map.putString("RawResponse", paymentResponse.RawResponse);
                         map.putString("SigFileName", paymentResponse.SigFileName);
                         map.putString("SignData", paymentResponse.SignData);
-                        map.putString("ExtraBalance", paymentResponse.ExtraBalance);
+                        if (paymentResponse.ExtraBalance == "")
+                            map.putString("ExtraBalance", "0");
+                        else
+                            map.putString("ExtraBalance", paymentResponse.ExtraBalance);
                         map.putString("CvResponse", paymentResponse.CvResponse);
                         map.putString("ExtData", paymentResponse.ExtData);
                         map.putString("BogusAccountNum", paymentResponse.BogusAccountNum);
                         map.putString("RefNum", paymentResponse.RefNum);
                         map.putString("CardType", paymentResponse.CardType);
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
-                        map.putString("ApprovedAmount", paymentResponse.ApprovedAmount);
+                        if (paymentResponse.ApprovedAmount == "")
+                            map.putString("ApprovedAmount", "0");
+                        else
+                            map.putString("ApprovedAmount", paymentResponse.ApprovedAmount);
                         success.invoke(map);
                     }
                     else if (msg.obj instanceof BatchResponse) {
@@ -786,12 +816,30 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("Timestamp", batchResponse.Timestamp);
                         map.putString("MID", batchResponse.MID);
                         map.putString("BatchFailedRefNum", batchResponse.BatchFailedRefNum);
-                        map.putString("BatchFailedCount", batchResponse.BatchFailedCount);
-                        map.putString("DebitCount", batchResponse.DebitCount);
-                        map.putString("DebitAmount", batchResponse.DebitAmount);
-                        map.putString("CreditCount", batchResponse.CreditCount);
-                        map.putString("CreditAmount", batchResponse.CreditAmount);
-                        map.putString("BatchNum", batchResponse.BatchNum);
+                        if (batchResponse.BatchFailedCount == "")
+                            map.putString("BatchFailedCount", "0");
+                        else
+                            map.putString("BatchFailedCount", batchResponse.BatchFailedCount);
+                        if (batchResponse.DebitCount == "")
+                            map.putString("DebitCount", "0");
+                        else
+                            map.putString("DebitCount", batchResponse.DebitCount);
+                        if (batchResponse.DebitAmount == "")
+                            map.putString("DebitAmount", "0");
+                        else
+                            map.putString("DebitAmount", batchResponse.DebitAmount);
+                        if (batchResponse.CreditCount == "")
+                            map.putString("CreditCount", "0");
+                        else
+                            map.putString("CreditCount", batchResponse.CreditCount);
+                        if (batchResponse.CreditAmount == "")
+                            map.putString("CreditAmount", "0");
+                        else
+                            map.putString("CreditAmount", batchResponse.CreditAmount);
+                        if (batchResponse.BatchNum == "")
+                            map.putString("BatchNum", "0");
+                        else
+                            map.putString("BatchNum", batchResponse.BatchNum);
                         map.putString("ExtData", batchResponse.ExtData);
                         map.putString("TID", batchResponse.TID);
                         success.invoke(map);
