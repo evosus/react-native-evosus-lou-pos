@@ -115,6 +115,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+            paymentRequest.CommercialCard = pComm;
 
             processPayment(paymentRequest);
 
@@ -209,6 +210,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(error)) return;
 
+        CommercialCard pComm = getCommercialCard(commercialCard);
+
         success= successCb;
         error = errorCb;
 
@@ -225,6 +228,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.AuthCode = authCode;
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+            paymentRequest.CommercialCard = pComm;
 
             processPayment(paymentRequest);
 
@@ -263,6 +267,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+            paymentRequest.CommercialCard = pComm;
 
             processPayment(paymentRequest);
 
@@ -489,7 +494,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         return true;
     }
-
 
     /**
      * @param successCb
@@ -922,10 +926,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         pComm.CustomerCode = commercialCard.getString("CustomerCode");
         pComm.PONumber = commercialCard.getString("PONumber");
         pComm.TaxExempt = commercialCard.getString("TaxExempt");
+        pComm.ProductDescription = commercialCard.getString("ProductDescription");
+        pComm.OrderDate = commercialCard.getString("OrderDate");
 
         ReadableArray taxDetails = commercialCard.getArray("TaxDetails");
         List taxDetailList = new ArrayList<CommercialCard.TaxDetail>();
-        for (int i = 0; i < taxDetailList.size() ; i++) {
+        for (int i = 0; i < taxDetails.size() ; i++) {
             ReadableMap taxItem = taxDetails.getMap(i);
             CommercialCard.TaxDetail taxDetail = new CommercialCard.TaxDetail();
             taxDetail.TaxAmount = taxItem.getString("TaxAmount");
