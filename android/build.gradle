@@ -31,8 +31,8 @@ android {
   defaultConfig {
     minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
     targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
-    versionCode 3
-    versionName "1.1"
+    versionCode 4
+    versionName "1.2"
   }
   lintOptions {
     abortOnError false
@@ -50,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    implementation files('libs/PAX_POSLinkAndroid_20190225.aar')
+    implementation files('libs/PAX_POSLinkAndroid_20190816.aar')
     implementation "com.facebook.react:react-native:${safeExtGet('reactnativeVersion', '+')}"
 }
 
