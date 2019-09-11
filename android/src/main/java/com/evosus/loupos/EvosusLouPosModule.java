@@ -1,6 +1,7 @@
 package com.evosus.loupos;
 
 import android.content.Context;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,9 +12,11 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
+import com.google.gson.Gson;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
 import com.pax.poslink.CommSetting;
@@ -36,6 +39,8 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 import com.pax.poslink.util.CountRunTime;
+
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,6 +50,8 @@ import java.util.regex.Pattern;
 public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     private static final String TAG = "EvosusLouPosModule";
 
+    private static final String CODE_ERROR = "CODE_ERROR";
+    private static final String CODE_OK = "CODE_OK";
     private final ReactApplicationContext reactContext;
     private PosLink posLink = null;
     private static ProcessTransResult ptr;
@@ -90,15 +97,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
+     * @param poNum
+     * @param taxAmt
+     * @param extData
      * @param successCb
      * @param errorCb
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
+    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
-
-        CommercialCard pComm = getCommercialCard(commercialCard);
 
         success = successCb;
         error = errorCb;
@@ -115,8 +123,43 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.CommercialCard = pComm;
+            paymentRequest.PONum = poNum;
+            paymentRequest.TaxAmt = taxAmt;
+            paymentRequest.ExtData = extData;
+            processPayment(paymentRequest);
 
+            mHandler.removeCallbacks(oneShotPaymentTask);
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * @param amount
+     * @param referenceNumber
+     * @param successCb
+     * @param errorCb
+     */
+    @ReactMethod
+    public void creditSaleEBT(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+
+        if (!validatePOSLink(error)) return;
+
+        success = successCb;
+        error = errorCb;
+
+        // Recommend to use single thread pool instead.
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        mHandler.postDelayed(oneShotPaymentTask, 25);
+
+        try {
+            Thread.sleep(30);
+
+            PaymentRequest paymentRequest = new PaymentRequest();
+            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
+            paymentRequest.TransType = paymentRequest.ParseTransType("EBT");
+            paymentRequest.ECRRefNum = referenceNumber;
+            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
             processPayment(paymentRequest);
 
             mHandler.removeCallbacks(oneShotPaymentTask);
@@ -202,15 +245,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param amount
      * @param referenceNumber
      * @param authCode
+     * @param poNum
+     * @param taxAmt
+     * @param extData
      * @param successCb
      * @param errorCb
      */
     @ReactMethod
-    public void creditForceAuth(String amount, String referenceNumber, String authCode, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
+    public void creditForceAuth(String amount, String referenceNumber, String authCode, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
-
-        CommercialCard pComm = getCommercialCard(commercialCard);
 
         success= successCb;
         error = errorCb;
@@ -228,7 +272,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.AuthCode = authCode;
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.CommercialCard = pComm;
+            paymentRequest.PONum = poNum;
+            paymentRequest.TaxAmt = taxAmt;
+            paymentRequest.ExtData = extData;
 
             processPayment(paymentRequest);
 
@@ -239,18 +285,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
     }
 
+
     /**
      * @param amount
      * @param referenceNumber
+     * @param poNum
+     * @param taxAmt
+     * @param extData
      * @param successCb
      * @param errorCb
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, ReadableMap commercialCard, Callback successCb, Callback errorCb) {
+    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
 
         if (!validatePOSLink(error)) return;
-
-        CommercialCard pComm = getCommercialCard(commercialCard);
 
         success = successCb;
         error = errorCb;
@@ -267,7 +315,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
             paymentRequest.ECRRefNum = referenceNumber;
             paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.CommercialCard = pComm;
+            paymentRequest.PONum = poNum;
+            // Got an error on TaxAmt during testing - dropping it out
+//            paymentRequest.TaxAmt = taxAmt;
+            paymentRequest.ExtData = extData;
 
             processPayment(paymentRequest);
 
@@ -314,66 +365,140 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
     }
 
+//    /**
+//     * @param CommType
+//     * @param Timeout
+//     * @param IPAddress
+//     * @param EnableProxy
+//     * @param successCb
+//     * @param errorCb
+//     */
+//    @ReactMethod
+//    public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Callback successCb, final Callback errorCb) {
+//        // Type - one of USB, TCP, AIDL
+//        // AIDL not implemented yet
+//
+//        if (!bInited)
+//            initPOSLink();
+//
+//        final String commType = CommType.toUpperCase();
+//        final String timeout = Timeout;
+//        final String ipAddress = IPAddress;
+//        final boolean enableProxy = EnableProxy;
+//
+//        String[] TypeList = new String[]{"USB", "TCP", "AIDL"};
+//        if (!Arrays.asList(TypeList).contains(commType)) {
+//            errorCb.invoke("Type not one of TCP, USB, or AIDL");
+//            return;
+//        }
+//
+//        try {
+//            Integer.parseInt(timeout);
+//        } catch(Exception e) {
+//            errorCb.invoke("Timeout is not an integer");
+//            return;
+//        }
+//
+//        if (commType.toUpperCase() == "USB" && !IsIPv4(ipAddress)) {
+//            errorCb.invoke("IPAddress is not an IPv4 address");
+//            return;
+//        }
+//
+//        String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
+//        commSetting = SettingINI.getCommSettingFromFile(iniFile);
+//
+//        commSetting.setType(commType);
+//        commSetting.setTimeOut(timeout);
+//        commSetting.setEnableProxy(enableProxy);
+//        commSetting.setDestIP(ipAddress);
+//        commSetting.setBaudRate("9600");
+//        commSetting.setDestPort("10009");
+//        commSetting.setSerialPort("COM1");
+//
+//        SettingINI.saveCommSettingToFile(iniFile, commSetting);
+//
+//        POSLinkCreatorWrapper.createSync(getReactApplicationContext(), new AppThreadPool.FinishInMainThreadCallback<PosLink>() {
+//            @Override
+//            public void onFinish(PosLink result, String errMsg) {
+//                posLink = result;
+//                posLink.appDataFolder = getCurrentActivity().getApplicationContext().getFilesDir().getAbsolutePath();
+//                posLink.SetCommSetting(commSetting);
+//
+//                if (errMsg != "") {
+//                    errorCb.invoke(errMsg);
+//                }
+//                else {
+//                    successCb.invoke("connected");
+//                }
+//            }
+//        });
+//    }
+//
+
     /**
      * @param CommType
      * @param Timeout
      * @param IPAddress
      * @param EnableProxy
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Callback successCb, final Callback errorCb) {
-        // Type - one of USB, TCP
+    public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Promise promise) {
+        // Type - one of USB, TCP, AIDL
+        // AIDL not implemented yet
 
         if (!bInited)
             initPOSLink();
 
-        final String commType = CommType;
+        final String commType = CommType.toUpperCase();
         final String timeout = Timeout;
         final String ipAddress = IPAddress;
         final boolean enableProxy = EnableProxy;
 
+        String[] TypeList = new String[]{"USB", "TCP", "AIDL"};
+        if (!Arrays.asList(TypeList).contains(commType)) {
+            promise.reject(CODE_ERROR, "Type not one of TCP, USB, or AIDL");
+            return;
+        }
+
+        try {
+            Integer.parseInt(timeout);
+        } catch(Exception e) {
+            promise.resolve("Timeout is not an integer");
+            return;
+        }
+
+        if (commType.toUpperCase() == "USB" && !IsIPv4(ipAddress)) {
+            promise.resolve("IPAddress is not an IPv4 address");
+            return;
+        }
+
+        String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
+        commSetting = SettingINI.getCommSettingFromFile(iniFile);
+
+        commSetting.setType(commType);
+        commSetting.setTimeOut(timeout);
+        commSetting.setEnableProxy(enableProxy);
+        commSetting.setDestIP(ipAddress);
+        commSetting.setBaudRate("9600");
+        commSetting.setDestPort("10009");
+        commSetting.setSerialPort("COM1");
+
+        SettingINI.saveCommSettingToFile(iniFile, commSetting);
+
         POSLinkCreatorWrapper.createSync(getReactApplicationContext(), new AppThreadPool.FinishInMainThreadCallback<PosLink>() {
             @Override
-            public void onFinish(PosLink result) {
+            public void onFinish(PosLink result, String errMsg) {
                 posLink = result;
-                String[] TypeList = new String[]{"USB", "TCP"};
-                if (!Arrays.asList(TypeList).contains(commType)) {
-                    errorCb.invoke("Type not one of TCP or USB");
-                    return;
-                }
-
-                try {
-                    Integer.parseInt(timeout);
-                } catch(Exception e) {
-                    errorCb.invoke("Timeout is not an integer");
-                    return;
-                }
-
-                if (!IsIPv4(ipAddress)) {
-                    errorCb.invoke("IPAddress is not an IPv4 address");
-                    return;
-                }
-
-                String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
-                CommSetting commSetting =SettingINI.getCommSettingFromFile(iniFile);
-
-                commSetting.setType(commType);
-                commSetting.setTimeOut(timeout);
-                commSetting.setEnableProxy(enableProxy);
-                commSetting.setDestIP(ipAddress);
-                commSetting.setBaudRate("9600");
-                commSetting.setDestPort("10009");
-                commSetting.setSerialPort("COM1");
-                commSetting.SaveCommSettingFile();
-
-                SettingINI.saveCommSettingToFile(iniFile, commSetting);
                 posLink.appDataFolder = getCurrentActivity().getApplicationContext().getFilesDir().getAbsolutePath();
                 posLink.SetCommSetting(commSetting);
 
-                successCb.invoke("connected");
-
+                if (errMsg != "") {
+                    promise.resolve(errMsg);
+                }
+                else {
+                    promise.resolve("connected");
+                }
             }
         });
     }
@@ -512,6 +637,40 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         processManage(manageRequest);
 
+    }
+
+    /**
+     * @param userName
+     * @param userPassword
+     * @param mid
+     * @param deviceID
+     * @param successCb
+     * @param errorCb
+     */
+    @ReactMethod
+    public void setTransactionKey(String userName, String userPassword, String mid, String deviceID, Callback successCb, Callback errorCb) {
+
+        if (!validatePOSLink(error)) return;
+
+        success = successCb;
+        error = errorCb;
+
+        ManageRequest manageRequest = new ManageRequest();
+        manageRequest.TransType = manageRequest.ParseTransType("SETVAR");
+        manageRequest.EDCType = manageRequest.ParseEDCType("CREDIT");
+        manageRequest.VarName = "UserName";
+        manageRequest.VarValue = userName;
+        manageRequest.VarName1 = "UserPassword";
+        manageRequest.VarValue1 = userPassword;
+        manageRequest.VarName2 = "MID";
+        manageRequest.VarValue2 = mid;
+        manageRequest.VarName3 = "DeviceID";
+        manageRequest.VarValue3 = deviceID;
+
+        processManage(manageRequest);
+
+        Gson gson = new Gson();
+        Log.i(TAG, "ManageRequest : " + gson.toJson(manageRequest));
     }
 
     /**
@@ -738,7 +897,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 handleMessage(msg);
             }
 
-            Log.i(TAG, "Transaction sucessed!");
+            Log.i(TAG, "Transaction success!");
 
         } else if (ptr.Code == ProcessTransResult.ProcessTransResultCode.TimeOut) {
             Message msg = new Message();
@@ -749,8 +908,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             msg.setData(b);
             handleMessage(msg);
 
-            Log.e(TAG, "Transaction TimeOut! " + String.valueOf(ptr.Code));
-            Log.e(TAG, "Transaction TimeOut! " + ptr.Msg);
+            Log.e(TAG, "Transaction Timeout! " + String.valueOf(ptr.Code));
+            Log.e(TAG, "Transaction Timeout! " + ptr.Msg);
         } else {
             Message msg = new Message();
             msg.what = Constant.TRANSACTION_FAILURE;
@@ -789,31 +948,19 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("HostResponse", paymentResponse.HostResponse);
                         map.putString("Message", paymentResponse.Message);
                         map.putString("Timestamp", paymentResponse.Timestamp);
-                        if (paymentResponse.RequestedAmount == "")
-                            map.putString("RequestedAmount", "0");
-                        else
-                            map.putString("RequestedAmount", paymentResponse.RequestedAmount);
-                        if (paymentResponse.RemainingBalance == "")
-                            map.putString("RemainingBalance", "0");
-                        else
-                            map.putString("RemainingBalance", paymentResponse.RemainingBalance);
+                        map.putString("RequestedAmount", paymentResponse.RequestedAmount);
+                        map.putString("RemainingBalance", paymentResponse.RemainingBalance);
+                        map.putString("ApprovedAmount", paymentResponse.ApprovedAmount);
+                        map.putString("ExtraBalance", paymentResponse.ExtraBalance);
                         map.putString("RawResponse", paymentResponse.RawResponse);
                         map.putString("SigFileName", paymentResponse.SigFileName);
                         map.putString("SignData", paymentResponse.SignData);
-                        if (paymentResponse.ExtraBalance == "")
-                            map.putString("ExtraBalance", "0");
-                        else
-                            map.putString("ExtraBalance", paymentResponse.ExtraBalance);
                         map.putString("CvResponse", paymentResponse.CvResponse);
                         map.putString("ExtData", paymentResponse.ExtData);
                         map.putString("BogusAccountNum", paymentResponse.BogusAccountNum);
                         map.putString("RefNum", paymentResponse.RefNum);
                         map.putString("CardType", paymentResponse.CardType);
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
-                        if (paymentResponse.ApprovedAmount == "")
-                            map.putString("ApprovedAmount", "0");
-                        else
-                            map.putString("ApprovedAmount", paymentResponse.ApprovedAmount);
                         success.invoke(map);
                     }
                     else if (msg.obj instanceof BatchResponse) {
@@ -829,30 +976,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("Timestamp", batchResponse.Timestamp);
                         map.putString("MID", batchResponse.MID);
                         map.putString("BatchFailedRefNum", batchResponse.BatchFailedRefNum);
-                        if (batchResponse.BatchFailedCount == "")
-                            map.putString("BatchFailedCount", "0");
-                        else
-                            map.putString("BatchFailedCount", batchResponse.BatchFailedCount);
-                        if (batchResponse.DebitCount == "")
-                            map.putString("DebitCount", "0");
-                        else
-                            map.putString("DebitCount", batchResponse.DebitCount);
-                        if (batchResponse.DebitAmount == "")
-                            map.putString("DebitAmount", "0");
-                        else
-                            map.putString("DebitAmount", batchResponse.DebitAmount);
-                        if (batchResponse.CreditCount == "")
-                            map.putString("CreditCount", "0");
-                        else
-                            map.putString("CreditCount", batchResponse.CreditCount);
-                        if (batchResponse.CreditAmount == "")
-                            map.putString("CreditAmount", "0");
-                        else
-                            map.putString("CreditAmount", batchResponse.CreditAmount);
-                        if (batchResponse.BatchNum == "")
-                            map.putString("BatchNum", "0");
-                        else
-                            map.putString("BatchNum", batchResponse.BatchNum);
+                        map.putString("BatchFailedCount", batchResponse.BatchFailedCount);
+                        map.putString("DebitCount", batchResponse.DebitCount);
+                        map.putString("DebitAmount", batchResponse.DebitAmount);
+                        map.putString("CreditCount", batchResponse.CreditCount);
+                        map.putString("CreditAmount", batchResponse.CreditAmount);
+                        map.putString("BatchNum", batchResponse.BatchNum);
                         map.putString("ExtData", batchResponse.ExtData);
                         map.putString("TID", batchResponse.TID);
                         success.invoke(map);
@@ -883,7 +1012,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         return matcher.matches();
     }
 
+    /*
+    * This method is for the first time setup of CommSetting
+    * */
     private static CommSetting setupSetting(Context context) {
+
         String settingIniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
         CommSetting commSetting = SettingINI.getCommSettingFromFile(settingIniFile);
 
@@ -917,50 +1050,50 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         return SettingINI.getCommSettingFromFile(settingIniFile);
     }
-
-    private CommercialCard getCommercialCard(ReadableMap commercialCard) {
-
-        // Init return object
-        CommercialCard pComm = new CommercialCard();
-
-        pComm.CustomerCode = commercialCard.getString("CustomerCode");
-        pComm.PONumber = commercialCard.getString("PONumber");
-        pComm.TaxExempt = commercialCard.getString("TaxExempt");
-        pComm.ProductDescription = commercialCard.getString("ProductDescription");
-        pComm.OrderDate = commercialCard.getString("OrderDate");
-
-        ReadableArray taxDetails = commercialCard.getArray("TaxDetails");
-        List taxDetailList = new ArrayList<CommercialCard.TaxDetail>();
-        for (int i = 0; i < taxDetails.size() ; i++) {
-            ReadableMap taxItem = taxDetails.getMap(i);
-            CommercialCard.TaxDetail taxDetail = new CommercialCard.TaxDetail();
-            taxDetail.TaxAmount = taxItem.getString("TaxAmount");
-            taxDetail.CustomerTaxID = taxItem.getString("CustomerTaxID");
-            taxDetail.TaxRate = taxItem.getString("TaxRate");
-            taxDetail.VATInvoiceNumber = taxItem.getString("VATInvoiceNumber");
-            taxDetailList.add(taxDetail);
-        }
-        // Set TaxDetails
-        pComm.TaxDetails = taxDetailList;
-
-        ReadableArray lineItemDetails = commercialCard.getArray("LineItemDetails");
-        List lineItemDetailList = new ArrayList<CommercialCard.LineItemDetail>();
-        for (int i = 0; i < lineItemDetails.size() ; i++) {
-            ReadableMap lineItem = lineItemDetails.getMap(i);
-            CommercialCard.LineItemDetail lineItemDetail = new CommercialCard.LineItemDetail();
-            lineItemDetail.ProductCode = lineItem.getString("ProductCode");
-            lineItemDetail.ItemCommodityCode = lineItem.getString("ItemCommodityCode");
-            lineItemDetail.ItemDescription = lineItem.getString("ItemDescription");
-            lineItemDetail.ItemQuantity = lineItem.getString("ItemQuantity");
-            lineItemDetail.ItemUnitPrice = lineItem.getString("ItemUnitPrice");
-            lineItemDetail.LineItemTotal = lineItem.getString("LineItemTotal");
-            lineItemDetailList.add(lineItemDetail);
-        }
-
-        // Set LineItemDetails
-        pComm.LineItemDetails = lineItemDetailList;
-
-        return pComm;
-    }
+//
+//    private CommercialCard getCommercialCard(ReadableMap commercialCard) {
+//
+//        // Init return object
+//        CommercialCard pComm = new CommercialCard();
+//
+//        pComm.CustomerCode = commercialCard.getString("CustomerCode");
+//        pComm.PONumber = commercialCard.getString("PONumber");
+//        pComm.TaxExempt = commercialCard.getString("TaxExempt");
+//        pComm.ProductDescription = commercialCard.getString("ProductDescription");
+//        pComm.OrderDate = commercialCard.getString("OrderDate");
+//
+//        ReadableArray taxDetails = commercialCard.getArray("TaxDetails");
+//        List taxDetailList = new ArrayList<CommercialCard.TaxDetail>();
+//        for (int i = 0; i < taxDetails.size() ; i++) {
+//            ReadableMap taxItem = taxDetails.getMap(i);
+//            CommercialCard.TaxDetail taxDetail = new CommercialCard.TaxDetail();
+//            taxDetail.TaxAmount = taxItem.getString("TaxAmount");
+//            taxDetail.CustomerTaxID = taxItem.getString("CustomerTaxID");
+//            taxDetail.TaxRate = taxItem.getString("TaxRate");
+//            taxDetail.VATInvoiceNumber = taxItem.getString("VATInvoiceNumber");
+//            taxDetailList.add(taxDetail);
+//        }
+//        // Set TaxDetails
+//        pComm.TaxDetails = taxDetailList;
+//
+//        ReadableArray lineItemDetails = commercialCard.getArray("LineItemDetails");
+//        List lineItemDetailList = new ArrayList<CommercialCard.LineItemDetail>();
+//        for (int i = 0; i < lineItemDetails.size() ; i++) {
+//            ReadableMap lineItem = lineItemDetails.getMap(i);
+//            CommercialCard.LineItemDetail lineItemDetail = new CommercialCard.LineItemDetail();
+//            lineItemDetail.ProductCode = lineItem.getString("ProductCode");
+//            lineItemDetail.ItemCommodityCode = lineItem.getString("ItemCommodityCode");
+//            lineItemDetail.ItemDescription = lineItem.getString("ItemDescription");
+//            lineItemDetail.ItemQuantity = lineItem.getString("ItemQuantity");
+//            lineItemDetail.ItemUnitPrice = lineItem.getString("ItemUnitPrice");
+//            lineItemDetail.LineItemTotal = lineItem.getString("LineItemTotal");
+//            lineItemDetailList.add(lineItemDetail);
+//        }
+//
+//        // Set LineItemDetails
+//        pComm.LineItemDetails = lineItemDetailList;
+//
+//        return pComm;
+//    }
 
 }

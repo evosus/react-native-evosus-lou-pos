@@ -36,7 +36,7 @@ public class AppThreadPool {
                         @Override
                         public void run() {
                             if (callback != null) {
-                                callback.onFinish((T) result);
+                                callback.onFinish((T) result, "");
                             }
                         }
                     });
@@ -58,7 +58,7 @@ public class AppThreadPool {
                         @Override
                         public void run() {
                             if (callback != null) {
-                                callback.onFinish((T) result);
+                                callback.onFinish((T) result, "");
                             }
                         }
                     });
@@ -85,6 +85,6 @@ public class AppThreadPool {
     }
 
     public interface FinishInMainThreadCallback<T> {
-        void onFinish(T result);
+        void onFinish(T result, String errMsg);
     }
 }
