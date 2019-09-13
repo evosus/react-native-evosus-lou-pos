@@ -51,14 +51,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     private static final String TAG = "EvosusLouPosModule";
 
     private static final String CODE_ERROR = "CODE_ERROR";
-    private static final String CODE_OK = "CODE_OK";
     private final ReactApplicationContext reactContext;
     private PosLink posLink = null;
     private static ProcessTransResult ptr;
     private static CommSetting commSetting;
     private static Boolean bInited = false;
-    private static Callback success;
-    private static Callback error;
+
+    // Global m_promise callback
+    private static Promise m_promise;
 
     public EvosusLouPosModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -100,19 +100,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param poNum
      * @param taxAmt
      * @param extData
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
+    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -137,19 +135,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     /**
      * @param amount
      * @param referenceNumber
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void creditSaleEBT(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void creditSaleEBT(String amount, String referenceNumber, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -166,25 +162,24 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
     /**
      * @param amount
      * @param referenceNumber
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void creditRefund(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void creditRefund(String amount, String referenceNumber, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success= successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -202,25 +197,24 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
     /**
      * @param amount
      * @param referenceNumber
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void creditVoid(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void creditVoid(String amount, String referenceNumber, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success= successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -238,6 +232,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
@@ -248,19 +243,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param poNum
      * @param taxAmt
      * @param extData
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void creditForceAuth(String amount, String referenceNumber, String authCode, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
+    public void creditForceAuth(String amount, String referenceNumber, String authCode, String poNum, String taxAmt, String extData, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success= successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -282,6 +275,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
@@ -292,19 +286,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param poNum
      * @param taxAmt
      * @param extData
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Callback successCb, Callback errorCb) {
+    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -326,25 +318,24 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
     /**
      * @param amount
      * @param referenceNumber
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void debitRefund(String amount, String referenceNumber, Callback successCb, Callback errorCb) {
+    public void debitRefund(String amount, String referenceNumber, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success= successCb;
-        error = errorCb;
+        m_promise = promise;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(success, error);
+        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
         mHandler.postDelayed(oneShotPaymentTask, 25);
 
         try {
@@ -362,6 +353,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+            promise.reject(CODE_ERROR, e);
         }
     }
 
@@ -464,12 +456,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         try {
             Integer.parseInt(timeout);
         } catch(Exception e) {
-            promise.resolve("Timeout is not an integer");
+            promise.reject(CODE_ERROR, "Timeout is not an integer");
             return;
         }
 
         if (commType.toUpperCase() == "USB" && !IsIPv4(ipAddress)) {
-            promise.resolve("IPAddress is not an IPv4 address");
+            promise.reject(CODE_ERROR, "IPAddress is not an IPv4 address");
             return;
         }
 
@@ -494,7 +486,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 posLink.SetCommSetting(commSetting);
 
                 if (errMsg != "") {
-                    promise.resolve(errMsg);
+                    promise.reject(CODE_ERROR, errMsg);
                 }
                 else {
                     promise.resolve("connected");
@@ -510,17 +502,30 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         POSLinkAndroid.init(getReactApplicationContext(), commSetting);
     }
 
+@ReactMethod
+public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { /* Promise is always last if you need asynchronous behavior*/
+
+    PaymentResponse response = new PaymentResponse(); /* Whatever object you are working with */
+
+    if (true) {
+        WritableMap map = Arguments.createMap();
+        map.putString("ResultCode", response.ResultCode);
+        map.putString("ResultTxt", response.ResultTxt);
+        promise.resolve(map); /* this resolves to a Javascript object across the React Native Bridge */
+    } else {
+        promise.reject(CODE_ERROR, "The error message");
+    }
+}
+
     /**
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void batchClose(Callback successCb, Callback errorCb) {
+    public void batchClose(Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         processBatch();
     }
@@ -599,41 +604,40 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     }
 
     /**
-     * @param errorCb
+     * @param promise
      * @return
      */
-    private boolean validatePOSLink(Callback errorCb) {
+    private boolean validatePOSLink(Promise promise) {
 
         if (!bInited)
             initPOSLink();
 
         if (posLink == null) {
             Toast.makeText(getReactApplicationContext(), "Cannot initialize POSLink", Toast.LENGTH_LONG);
-            errorCb.invoke("Cannot initialize POSLink");
+            promise.reject(CODE_ERROR, "Cannot initialize POSLink");
             return false;
         }
         if (posLink.GetCommSetting() == null) {
             Toast.makeText(getReactApplicationContext(), "POSLink missing Communication Settings", Toast.LENGTH_LONG);
-            errorCb.invoke("POSLink missing Communication Settings");
+            promise.reject(CODE_ERROR, "POSLink missing Communication Settings");
             return false;
         }
         return true;
     }
 
     /**
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void rebootQ20(Callback successCb, Callback errorCb) {
+    public void rebootQ20(Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         ManageRequest manageRequest = new ManageRequest();
         manageRequest.TransType = manageRequest.ParseTransType("REBOOT");
+        manageRequest.EDCType = manageRequest.ParseEDCType("ALL");
 
         processManage(manageRequest);
 
@@ -644,16 +648,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param userPassword
      * @param mid
      * @param deviceID
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void setTransactionKey(String userName, String userPassword, String mid, String deviceID, Callback successCb, Callback errorCb) {
+    public void setTransactionKey(String userName, String userPassword, String mid, String deviceID, Promise promise) {
 
-        if (!validatePOSLink(error)) return;
+        if (!validatePOSLink(promise)) return;
 
-        success = successCb;
-        error = errorCb;
+        m_promise = promise;
 
         ManageRequest manageRequest = new ManageRequest();
         manageRequest.TransType = manageRequest.ParseTransType("SETVAR");
@@ -675,17 +677,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
     /**
      * @param receiptText
-     * @param successCb
-     * @param errorCb
+     * @param promise
      */
     @ReactMethod
-    public void printReceipt(final String receiptText, final Callback successCb, final Callback errorCb) {
+    public void printReceipt(final String receiptText, final Promise promise) {
 
         POSLinkPrinter posLinkPrinter = POSLinkPrinter.getInstance(getReactApplicationContext());
 
         if (posLinkPrinter == null){
             Toast.makeText(getReactApplicationContext(), "Cannot initialize POSLinkPrinter", Toast.LENGTH_LONG);
-            errorCb.invoke("Cannot initialize POSLinkPrinter");
+            promise.reject(CODE_ERROR,"Cannot initialize POSLinkPrinter");
             return;
         }
 
@@ -697,7 +698,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             public void onSuccess() {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     public void run() {
-                        successCb.invoke("Printed");
+                        promise.resolve("Printed");
                         Toast.makeText(getReactApplicationContext(), receiptText, Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -708,7 +709,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
             public void onError(final ProcessResult processResult) {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     public void run() {
-                        errorCb.invoke(processResult.getMessage());
+                        promise.reject(CODE_ERROR, processResult.getMessage());
                         Toast.makeText(getReactApplicationContext(), processResult.getMessage(), Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -748,9 +749,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         Callback success;
         Callback error;
 
-        OneShotPaymentTask(Callback successC, Callback errorC) {
-            success = successC;
-            error = errorC;
+        OneShotPaymentTask(Promise promise) {
+            m_promise = promise;
         }
         public void run() {
             int status;
@@ -931,15 +931,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 if (msg.obj != null) {
                     if (msg.obj instanceof ManageResponse) {
                         ManageResponse manageResponse = (ManageResponse) msg.obj;
-                        Toast.makeText(getReactApplicationContext(), manageResponse.ResultCode + '\n' + manageResponse.ResultTxt, Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getReactApplicationContext(), manageResponse.ResultCode + '\n' + manageResponse.ResultTxt, Toast.LENGTH_LONG).show();
                         WritableMap map = Arguments.createMap();
                         map.putString("ResultCode", manageResponse.ResultCode);
                         map.putString("ResultTxt", manageResponse.ResultTxt);
-                        success.invoke(map);
+                        m_promise.resolve(map);
                     }
                     else if (msg.obj instanceof PaymentResponse) {
                         PaymentResponse paymentResponse = (PaymentResponse) msg.obj;
-                        Toast.makeText(getReactApplicationContext(), paymentResponse.ResultCode + '\n' + paymentResponse.ResultTxt, Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getReactApplicationContext(), paymentResponse.ResultCode + '\n' + paymentResponse.ResultTxt, Toast.LENGTH_LONG).show();
                         WritableMap map = Arguments.createMap();
                         map.putString("ResultCode", paymentResponse.ResultCode);
                         map.putString("ResultTxt", paymentResponse.ResultTxt);
@@ -961,7 +961,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("RefNum", paymentResponse.RefNum);
                         map.putString("CardType", paymentResponse.CardType);
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
-                        success.invoke(map);
+                        m_promise.resolve(map);
                     }
                     else if (msg.obj instanceof BatchResponse) {
                         BatchResponse batchResponse = (BatchResponse) msg.obj;
@@ -984,7 +984,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                         map.putString("BatchNum", batchResponse.BatchNum);
                         map.putString("ExtData", batchResponse.ExtData);
                         map.putString("TID", batchResponse.TID);
-                        success.invoke(map);
+                        m_promise.resolve(map);
                     }
                 }
                 break;
@@ -993,6 +993,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 String title = msg.getData().getString(Constant.DIALOG_TITLE);
                 String message = msg.getData().getString(Constant.DIALOG_MESSAGE);
                 Toast.makeText(getReactApplicationContext(), title +'\n' + message, Toast.LENGTH_LONG).show();
+                m_promise.reject(CODE_ERROR, message);
                 break;
         }
     }
