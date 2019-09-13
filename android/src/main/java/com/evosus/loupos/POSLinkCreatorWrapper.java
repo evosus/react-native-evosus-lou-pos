@@ -13,7 +13,9 @@ import com.pax.poslink.usb.UsbUtil;
 
 public class POSLinkCreatorWrapper {
 
+    private static String lastError;
     private static PosLink create(Context context) {
+        lastError = "";
         String iniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
         CommSetting commset = SettingINI.getCommSettingFromFile(iniFile);
         if (commset.getType().equals(CommSetting.TCP)) {
@@ -21,13 +23,19 @@ public class POSLinkCreatorWrapper {
             Integer timeout = Integer.parseInt(commset.getTimeOut());
             TcpConnection tcpConnection = new TcpConnection(commset.getDestIP(), port, timeout);
             if (tcpConnection == null) {
+                lastError = "Cannot create TCP connection to terminal.";
                 Toast.makeText(context, "Cannot create TCP connection to terminal.", Toast.LENGTH_SHORT).show();
             } else {
                 Integer i = tcpConnection.connect();
+                if (i != 0) {
+                    lastError = "Exception opening TCP connection to terminal.";
+                    Toast.makeText(context, "Exception opening TCP connection to terminal.", Toast.LENGTH_SHORT).show();
+                }
                 try {
                     tcpConnection.close();
                 } catch (Exception e) {
-                    Toast.makeText(context, "Exception creating or closing TCP connection to terminal.", Toast.LENGTH_SHORT).show();
+                    lastError = "Exception closing TCP connection to terminal.";
+                    Toast.makeText(context, "Exception closing TCP connection to terminal.", Toast.LENGTH_SHORT).show();
                 }
             }
         }
@@ -42,7 +50,7 @@ public class POSLinkCreatorWrapper {
 
     public static void createSync(final Context context, final AppThreadPool.FinishInMainThreadCallback<PosLink> callback) {
         Log.i("DEBUG", "Start Create POSLink");
-        callback.onFinish(POSLinkCreatorWrapper.create(context));
+        callback.onFinish(POSLinkCreatorWrapper.create(context), lastError);
         Log.i("DEBUG", "Finish Create POSLink");
 
     }
