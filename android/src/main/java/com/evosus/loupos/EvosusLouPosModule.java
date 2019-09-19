@@ -1,22 +1,23 @@
 package com.evosus.loupos;
 
+import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
-import android.nfc.Tag;
+import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.telecom.Call;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
-import com.google.gson.Gson;
+//import com.google.gson.Gson;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
 import com.pax.poslink.CommSetting;
@@ -25,7 +26,7 @@ import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
 import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
-import com.pax.poslink.PaymentRequest.CommercialCard;
+//import com.pax.poslink.PaymentRequest.CommercialCard;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
@@ -38,12 +39,10 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+import com.pax.poslink.poslink.POSLinkCreator;
 import com.pax.poslink.util.CountRunTime;
 
-import java.io.Console;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,13 +51,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
     private static final String CODE_ERROR = "CODE_ERROR";
     private final ReactApplicationContext reactContext;
+
     private PosLink posLink = null;
     private static ProcessTransResult ptr;
     private static CommSetting commSetting;
     private static Boolean bInited = false;
-
-    // Global m_promise callback
-    private static Promise m_promise;
 
     public EvosusLouPosModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -99,39 +96,30 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
      * @param referenceNumber
      * @param poNum
      * @param taxAmt
+     * @param tipAmt
      * @param extData
      * @param promise
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Promise promise) {
+    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+        paymentRequest.PONum = poNum;
+        paymentRequest.TaxAmt = taxAmt;
+        paymentRequest.TipAmt = tipAmt;
+        paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
-
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.PONum = poNum;
-            paymentRequest.TaxAmt = taxAmt;
-            paymentRequest.ExtData = extData;
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
     }
+
     /**
      * @param amount
      * @param referenceNumber
@@ -142,28 +130,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("EBT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("EBT");
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
 
     /**
@@ -176,64 +152,41 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
 
     /**
      * @param amount
      * @param referenceNumber
+     * @param origRefNum
+     * @param origECRRefNum
      * @param promise
      */
     @ReactMethod
-    public void creditVoid(String amount, String referenceNumber, Promise promise) {
+    public void creditVoid(String amount, String referenceNumber, String origRefNum, String origECRRefNum, Promise promise) {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("VOID");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.OrigRefNum = origRefNum;
+        paymentRequest.OrigECRRefNum = origECRRefNum;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("VOID");
-            paymentRequest.OrigECRRefNum = referenceNumber;
-            paymentRequest.ECRRefNum = "VBVBVB";
-
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
 
     /**
@@ -250,76 +203,51 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("FORCEAUTH");
+        paymentRequest.AuthCode = authCode;
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+        paymentRequest.PONum = poNum;
+        paymentRequest.TaxAmt = taxAmt;
+        paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("FORCEAUTH");
-            paymentRequest.AuthCode = authCode;
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.PONum = poNum;
-            paymentRequest.TaxAmt = taxAmt;
-            paymentRequest.ExtData = extData;
-
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
-
 
     /**
      * @param amount
      * @param referenceNumber
      * @param poNum
      * @param taxAmt
+     * @param tipAmt
      * @param extData
      * @param promise
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String extData, Promise promise) {
+    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
+        paymentRequest.PONum = poNum;
+        paymentRequest.TipAmt = tipAmt;
+        // Got an error on TaxAmt during testing - dropping it out
+//            paymentRequest.TaxAmt = taxAmt;
+        paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-            paymentRequest.PONum = poNum;
-            // Got an error on TaxAmt during testing - dropping it out
-//            paymentRequest.TaxAmt = taxAmt;
-            paymentRequest.ExtData = extData;
-
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
 
     /**
@@ -332,100 +260,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
+        paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
+        paymentRequest.ECRRefNum = referenceNumber;
+        paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask oneShotPaymentTask = new OneShotPaymentTask(promise);
-        mHandler.postDelayed(oneShotPaymentTask, 25);
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest);
+        oneShotPaymentTask.execute();
 
-        try {
-            Thread.sleep(30);
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
-            paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
-            paymentRequest.ECRRefNum = referenceNumber;
-            paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
-
-            processPayment(paymentRequest);
-
-            mHandler.removeCallbacks(oneShotPaymentTask);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-            promise.reject(CODE_ERROR, e);
-        }
     }
-
-//    /**
-//     * @param CommType
-//     * @param Timeout
-//     * @param IPAddress
-//     * @param EnableProxy
-//     * @param successCb
-//     * @param errorCb
-//     */
-//    @ReactMethod
-//    public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Callback successCb, final Callback errorCb) {
-//        // Type - one of USB, TCP, AIDL
-//        // AIDL not implemented yet
-//
-//        if (!bInited)
-//            initPOSLink();
-//
-//        final String commType = CommType.toUpperCase();
-//        final String timeout = Timeout;
-//        final String ipAddress = IPAddress;
-//        final boolean enableProxy = EnableProxy;
-//
-//        String[] TypeList = new String[]{"USB", "TCP", "AIDL"};
-//        if (!Arrays.asList(TypeList).contains(commType)) {
-//            errorCb.invoke("Type not one of TCP, USB, or AIDL");
-//            return;
-//        }
-//
-//        try {
-//            Integer.parseInt(timeout);
-//        } catch(Exception e) {
-//            errorCb.invoke("Timeout is not an integer");
-//            return;
-//        }
-//
-//        if (commType.toUpperCase() == "USB" && !IsIPv4(ipAddress)) {
-//            errorCb.invoke("IPAddress is not an IPv4 address");
-//            return;
-//        }
-//
-//        String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
-//        commSetting = SettingINI.getCommSettingFromFile(iniFile);
-//
-//        commSetting.setType(commType);
-//        commSetting.setTimeOut(timeout);
-//        commSetting.setEnableProxy(enableProxy);
-//        commSetting.setDestIP(ipAddress);
-//        commSetting.setBaudRate("9600");
-//        commSetting.setDestPort("10009");
-//        commSetting.setSerialPort("COM1");
-//
-//        SettingINI.saveCommSettingToFile(iniFile, commSetting);
-//
-//        POSLinkCreatorWrapper.createSync(getReactApplicationContext(), new AppThreadPool.FinishInMainThreadCallback<PosLink>() {
-//            @Override
-//            public void onFinish(PosLink result, String errMsg) {
-//                posLink = result;
-//                posLink.appDataFolder = getCurrentActivity().getApplicationContext().getFilesDir().getAbsolutePath();
-//                posLink.SetCommSetting(commSetting);
-//
-//                if (errMsg != "") {
-//                    errorCb.invoke(errMsg);
-//                }
-//                else {
-//                    successCb.invoke("connected");
-//                }
-//            }
-//        });
-//    }
-//
 
     /**
      * @param CommType
@@ -495,27 +340,22 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         });
     }
 
+    private PosLink getPOSLink() {
+        PosLink posLink1 = POSLinkCreator.createPoslink(getReactApplicationContext());
+
+        String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
+        commSetting = SettingINI.getCommSettingFromFile(iniFile);
+        posLink1.SetCommSetting(commSetting);
+
+        return posLink1;
+    }
+
     private void initPOSLink() {
         bInited = true;
         AppThreadPool.getInstance();
         commSetting = setupSetting(getReactApplicationContext());
         POSLinkAndroid.init(getReactApplicationContext(), commSetting);
     }
-
-@ReactMethod
-public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { /* Promise is always last if you need asynchronous behavior*/
-
-    PaymentResponse response = new PaymentResponse(); /* Whatever object you are working with */
-
-    if (true) {
-        WritableMap map = Arguments.createMap();
-        map.putString("ResultCode", response.ResultCode);
-        map.putString("ResultTxt", response.ResultTxt);
-        promise.resolve(map); /* this resolves to a Javascript object across the React Native Bridge */
-    } else {
-        promise.reject(CODE_ERROR, "The error message");
-    }
-}
 
     /**
      * @param promise
@@ -525,83 +365,116 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
-
-        processBatch();
-    }
-
-    private void processBatch() {
+        BatchRequest batchRequest = new BatchRequest();
+        batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
+        batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
 
         // Recommend to use single thread pool instead.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        OneShotBatchTask oneShotBatchTask = new OneShotBatchTask(promise, batchRequest);
+        oneShotBatchTask.execute();
 
-                BatchRequest batchRequest = new BatchRequest();
-                batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
-                batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
-
-                posLink.BatchRequest = batchRequest;
-
-                // ProcessTrans is Blocking call, will return when the transaction is complete.
-                CountRunTime.start("Batch");
-                ptr = posLink.ProcessTrans();
-                CountRunTime.countPoint("Batch");
-                getCurrentActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        taskCompleted(posLink);
-                    }
-                });
-            }
-        }).start();
     }
+//
+//    private void processBatch() {
+//
+//        // Recommend to use single thread pool instead.
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                BatchRequest batchRequest = new BatchRequest();
+//                batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
+//                batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
+//
+//                posLink.BatchRequest = batchRequest;
+//
+//                // ProcessTrans is Blocking call, will return when the transaction is complete.
+//                CountRunTime.start("Batch");
+//                ptr = posLink.ProcessTrans();
+//                CountRunTime.countPoint("Batch");
+//                getCurrentActivity().runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        taskCompleted(posLink, m_promise);
+//                    }
+//                });
+//            }
+//        }).start();
+//    }
+//
+//    private void processPayment2(final PaymentRequest request) {
+//
+//        // Recommend to use single thread pool instead.
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                posLink.PaymentRequest = request;
+//
+//                // ProcessTrans is Blocking call, will return when the transaction is complete.
+//                CountRunTime.start("Payment");
+//                ptr = posLink.ProcessTrans();
+//                CountRunTime.countPoint("Payment");
+//                getCurrentActivity().runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        taskCompleted(posLink, m_promise);
+//
+//                    }
+//                });
+//
+//            }
+//        }).start();
+//    }
+//
+//    private void processPayment(final PaymentRequest request, final Promise promise) {
+//
+//        // Recommend to use single thread pool instead.
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                posLink.PaymentRequest = request;
+//
+//                // ProcessTrans is Blocking call, will return when the transaction is complete.
+//                CountRunTime.start("Payment");
+//                ptr = posLink.ProcessTrans();
+//                CountRunTime.countPoint("Payment");
+//                getCurrentActivity().runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        taskCompleted(posLink, promise);
+//
+//                    }
+//                });
+//
+//            }
+//        }).start();
+//    }
 
-    private void processPayment(final PaymentRequest request) {
-
-        // Recommend to use single thread pool instead.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                posLink.PaymentRequest = request;
-
-                // ProcessTrans is Blocking call, will return when the transaction is complete.
-                CountRunTime.start("Payment");
-                ptr = posLink.ProcessTrans();
-                CountRunTime.countPoint("Payment");
-                getCurrentActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        taskCompleted(posLink);
-                    }
-                });
-            }
-        }).start();
-    }
-
-    private void processManage(final ManageRequest request) {
-
-        // Recommend to use single thread pool instead.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                posLink.ManageRequest = request;
-
-                // ProcessTrans is Blocking call, will return when the transaction is complete.
-                CountRunTime.start("Manage");
-                ptr = posLink.ProcessTrans();
-                CountRunTime.countPoint("Manage");
-                getCurrentActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        taskCompleted(posLink);
-                    }
-                });
-            }
-        }).start();
-    }
+//
+//    private void processManage(final ManageRequest request, final Promise promise) {
+//
+//        // Recommend to use single thread pool instead.
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                posLink.ManageRequest = request;
+//
+//                // ProcessTrans is Blocking call, will return when the transaction is complete.
+//                CountRunTime.start("Manage");
+//                ptr = posLink.ProcessTrans();
+//                CountRunTime.countPoint("Manage");
+//                getCurrentActivity().runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        taskCompleted(posLink, promise);
+//                    }
+//                });
+//            }
+//        }).start();
+//    }
 
     /**
      * @param promise
@@ -633,13 +506,12 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
-
         ManageRequest manageRequest = new ManageRequest();
         manageRequest.TransType = manageRequest.ParseTransType("REBOOT");
         manageRequest.EDCType = manageRequest.ParseEDCType("ALL");
 
-        processManage(manageRequest);
+        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest);
+        oneShotManageTask.execute();
 
     }
 
@@ -655,8 +527,6 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 
         if (!validatePOSLink(promise)) return;
 
-        m_promise = promise;
-
         ManageRequest manageRequest = new ManageRequest();
         manageRequest.TransType = manageRequest.ParseTransType("SETVAR");
         manageRequest.EDCType = manageRequest.ParseEDCType("CREDIT");
@@ -669,10 +539,9 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
         manageRequest.VarName3 = "DeviceID";
         manageRequest.VarValue3 = deviceID;
 
-        processManage(manageRequest);
+        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest);
+        oneShotManageTask.execute();
 
-        Gson gson = new Gson();
-        Log.i(TAG, "ManageRequest : " + gson.toJson(manageRequest));
     }
 
     /**
@@ -718,99 +587,224 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
         });
 
     }
+//
+//    private Handler mHandler = new Handler(Looper.getMainLooper()) {
+//
+//        @Override
+//        public void handleMessage(Message msg) {
+//            switch (msg.what) {
+//                case Constant.TRANSACTION_SUCCESSED:
+//                    PaymentResponse response = (PaymentResponse) msg.obj;
+//                    taskCompleted(posLink, m_promise);
+//                    break;
+//                case Constant.TRANSACTION_TIMEOUT:
+//                case Constant.TRANSACTION_FAILURE:
+//                    String title = msg.getData().getString(Constant.DIALOG_TITLE);
+//                    String message = msg.getData().getString(Constant.DIALOG_MESSAGE);
+//                    Toast.makeText(getReactApplicationContext(), title + '\n' + message, Toast.LENGTH_LONG);
+//                    break;
+//                case Constant.TRANSACTION_STATUS:
+//                    String sTitle = "REPORTED STATUS";
+//                    String sMessage = msg.obj.toString();
+//                    Toast.makeText(getReactApplicationContext() , sTitle + '\n' + sMessage, Toast.LENGTH_LONG);
+//                    break;
+//            }
+//        }
+//
+//    };
 
-    private Handler mHandler = new Handler(Looper.getMainLooper()) {
+    private class OneShotPaymentTask2  extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog dialog;
+        private PaymentRequest l_paymentRequest;
+        private Promise l_promise;
+        private PosLink posLink2;
+
+        public OneShotPaymentTask2(Promise promise, PaymentRequest paymentRequest) {
+
+            l_paymentRequest = paymentRequest;
+            l_promise= promise;
+            posLink2 = getPOSLink();
+
+            dialog = new ProgressDialog(getCurrentActivity());
+            dialog.setMessage("Processing...");
+            dialog.setCancelable(true);
+            dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    if (posLink2 != null)
+                        posLink2.CancelTrans();
+
+                }
+            });
+        }
 
         @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case Constant.TRANSACTION_SUCCESSED:
-                    PaymentResponse response = (PaymentResponse) msg.obj;
-                    taskCompleted(posLink);
-                    break;
-                case Constant.TRANSACTION_TIMEOUT:
-                case Constant.TRANSACTION_FAILURE:
-                    String title = msg.getData().getString(Constant.DIALOG_TITLE);
-                    String message = msg.getData().getString(Constant.DIALOG_MESSAGE);
-                    Toast.makeText(getReactApplicationContext(), title + '\n' + message, Toast.LENGTH_LONG);
-                    break;
-                case Constant.TRANSACTION_STATUS:
-                    String sTitle = "REPORTED STATUS";
-                    String sMessage = msg.obj.toString();
-                    Toast.makeText(getReactApplicationContext() , sTitle + '\n' + sMessage, Toast.LENGTH_LONG);
-                    break;
+        protected void onPreExecute() {
+            if (dialog != null) {
+                dialog.setMessage("Processing...");
+                dialog.show();
             }
         }
 
-    };
+        @Override
+        protected Void doInBackground(Void... args) {
 
-    class OneShotPaymentTask implements Runnable {
-        int lastStatus = -1;
-        Callback success;
-        Callback error;
+            posLink2.PaymentRequest = l_paymentRequest;
 
-        OneShotPaymentTask(Promise promise) {
-            m_promise = promise;
-        }
-        public void run() {
-            int status;
+            // ProcessTrans is Blocking call, will return when the transaction is complete.
+            CountRunTime.start("Payment");
+            ptr = posLink2.ProcessTrans();
+            CountRunTime.countPoint("Payment");
+            getCurrentActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    taskCompleted(posLink2, l_promise);
 
-            if (posLink != null) {
-                try {
-                    Thread.sleep(0);
-
-                    status = posLink.GetReportedStatus();
-                    if (status != lastStatus) {
-                        switch (status) {
-                            case 0:
-                                Message msg0 = new Message();
-                                msg0.what = Constant.TRANSACTION_STATUS;
-                                msg0.obj = "Ready for CARD INPUT";
-                                mHandler.sendMessage(msg0);
-                                break;
-                            case 1:
-                                Message msg1 = new Message();
-                                msg1.what = Constant.TRANSACTION_STATUS;
-                                msg1.obj = "Ready for PIN ENTRY";
-                                mHandler.sendMessage(msg1);
-                                break;
-                            case 2:
-                                Message msg2 = new Message();
-                                msg2.what = Constant.TRANSACTION_STATUS;
-                                msg2.obj = "Ready for SIGNATURE";
-                                mHandler.sendMessage(msg2);
-                                break;
-                            case 3:
-                                Message msg3 = new Message();
-                                msg3.what = Constant.TRANSACTION_STATUS;
-                                msg3.obj = "Ready for ONLINE PROCESSING";
-                                mHandler.sendMessage(msg3);
-                                break;
-                            case 4:
-                                Message msg4 = new Message();
-                                msg4.what = Constant.TRANSACTION_STATUS;
-                                msg4.obj = "Ready for NEW CARD INPUT";
-                                mHandler.sendMessage(msg4);
-                                break;
-                            default:
-                                break;
-                        }
-
-                        lastStatus = status;
-                    }
-
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
-            }
+            });
 
-            mHandler.postDelayed(this, 500);
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            // do UI work here
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+            }
         }
     }
 
+    private class OneShotBatchTask  extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog dialog;
+        private BatchRequest l_batchRequest;
+        private Promise l_promise;
+        private PosLink posLink2;
+
+        public OneShotBatchTask(Promise promise, BatchRequest request) {
+
+            l_batchRequest = request;
+            l_promise= promise;
+            posLink2 = getPOSLink();
+
+            dialog = new ProgressDialog(getCurrentActivity());
+            dialog.setMessage("Processing...");
+            dialog.setCancelable(true);
+            dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    if (posLink2 != null)
+                        posLink2.CancelTrans();
+
+                }
+            });
+        }
+
+        @Override
+        protected void onPreExecute() {
+            if (dialog != null) {
+                dialog.setMessage("Processing...");
+                dialog.show();
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... args) {
+
+            posLink2.BatchRequest = l_batchRequest;
+
+            // ProcessTrans is Blocking call, will return when the transaction is complete.
+            CountRunTime.start("Batch");
+            ptr = posLink2 .ProcessTrans();
+            CountRunTime.countPoint("Batch");
+            getCurrentActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    taskCompleted(posLink2 , l_promise);
+
+                }
+            });
+
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            // do UI work here
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+            }
+        }
+    }
+
+    private class OneShotManageTask  extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog dialog;
+        private ManageRequest l_manageRequest;
+        private Promise l_promise;
+        private PosLink posLink2;
+
+        public OneShotManageTask(Promise promise, ManageRequest request) {
+
+            l_manageRequest = request;
+            l_promise= promise;
+            posLink2 = getPOSLink();
+
+            dialog = new ProgressDialog(getCurrentActivity());
+            dialog.setMessage("Processing...");
+            dialog.setCancelable(true);
+            dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    if (posLink2 != null)
+                        posLink2.CancelTrans();
+
+                }
+            });
+        }
+
+        @Override
+        protected void onPreExecute() {
+            if (dialog != null) {
+                dialog.setMessage("Processing...");
+                dialog.show();
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... args) {
+
+            posLink2.ManageRequest = l_manageRequest;
+
+            // ProcessTrans is Blocking call, will return when the transaction is complete.
+            CountRunTime.start("Manage");
+            ptr = posLink2.ProcessTrans();
+            CountRunTime.countPoint("Manage");
+            getCurrentActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    taskCompleted(posLink2, l_promise);
+                }
+            });
+
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            // do UI work here
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+            }
+        }
+    }
+
+    //
+//    class OneShotPaymentTask implements Runnable {
+//        int lastStatus = -1;
 //
-//    private int lastReportedStatus = -1;
-//    final Runnable MyRunnable = new Runnable() {
+//        OneShotPaymentTask(Promise promise) {
+//            m_promise = promise;
+//        }
 //
 //        public void run() {
 //            int status;
@@ -820,7 +814,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 //                    Thread.sleep(0);
 //
 //                    status = posLink.GetReportedStatus();
-//                    if (status != lastReportedStatus) {
+//                    if (status != lastStatus) {
 //                        switch (status) {
 //                            case 0:
 //                                Message msg0 = new Message();
@@ -856,7 +850,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 //                                break;
 //                        }
 //
-//                        lastReportedStatus = status;
+//                        lastStatus = status;
 //                    }
 //
 //                } catch (InterruptedException e) {
@@ -866,9 +860,9 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
 //
 //            mHandler.postDelayed(this, 500);
 //        }
-//    };
+//    }
 
-    private void taskCompleted(PosLink poslink) {
+    private void taskCompleted(PosLink poslink, Promise promise) {
         // There will be 2 separate results that you must handle. First is the
         // ProcessTransResult, this will give you the result of the
         // request to call poslink. ManageResponse should only be checked if
@@ -882,19 +876,19 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
                 Message msg = new Message();
                 msg.what = Constant.TRANSACTION_SUCCESSED;
                 msg.obj = manageResponse;
-                handleMessage(msg);
+                handleMessage(msg, promise);
             } else if (poslink.BatchResponse != null) {
                 BatchResponse batchResponse = poslink.BatchResponse;
                 Message msg = new Message();
                 msg.what = Constant.TRANSACTION_SUCCESSED;
                 msg.obj = batchResponse;
-                handleMessage(msg);
+                handleMessage(msg, promise);
             } else if (poslink.PaymentResponse != null) {
                 PaymentResponse paymentResponse = poslink.PaymentResponse;
                 Message msg = new Message();
                 msg.what = Constant.TRANSACTION_SUCCESSED;
                 msg.obj = paymentResponse;
-                handleMessage(msg);
+                handleMessage(msg, promise);
             }
 
             Log.i(TAG, "Transaction success!");
@@ -906,7 +900,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
             b.putString(Constant.DIALOG_TITLE, String.valueOf(ptr.Code));
             b.putString(Constant.DIALOG_MESSAGE, ptr.Msg);
             msg.setData(b);
-            handleMessage(msg);
+            handleMessage(msg, promise);
 
             Log.e(TAG, "Transaction Timeout! " + String.valueOf(ptr.Code));
             Log.e(TAG, "Transaction Timeout! " + ptr.Msg);
@@ -917,14 +911,14 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
             b.putString(Constant.DIALOG_TITLE, String.valueOf(ptr.Code));
             b.putString(Constant.DIALOG_MESSAGE, ptr.Msg);
             msg.setData(b);
-            handleMessage(msg);
+            handleMessage(msg, promise);
 
             Log.e(TAG, "Transaction Error! " + String.valueOf(ptr.Code));
             Log.e(TAG, "Transaction Error! " + ptr.Msg);
         }
     }
 
-    public void handleMessage(Message msg) {
+    public void handleMessage(Message msg, Promise promise) {
 
         switch (msg.what) {
             case Constant.TRANSACTION_SUCCESSED:
@@ -935,7 +929,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
                         WritableMap map = Arguments.createMap();
                         map.putString("ResultCode", manageResponse.ResultCode);
                         map.putString("ResultTxt", manageResponse.ResultTxt);
-                        m_promise.resolve(map);
+                        promise.resolve(map);
                     }
                     else if (msg.obj instanceof PaymentResponse) {
                         PaymentResponse paymentResponse = (PaymentResponse) msg.obj;
@@ -961,7 +955,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
                         map.putString("RefNum", paymentResponse.RefNum);
                         map.putString("CardType", paymentResponse.CardType);
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
-                        m_promise.resolve(map);
+                        promise.resolve(map);
                     }
                     else if (msg.obj instanceof BatchResponse) {
                         BatchResponse batchResponse = (BatchResponse) msg.obj;
@@ -981,10 +975,12 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
                         map.putString("DebitAmount", batchResponse.DebitAmount);
                         map.putString("CreditCount", batchResponse.CreditCount);
                         map.putString("CreditAmount", batchResponse.CreditAmount);
+                        map.putString("EBTCount", batchResponse.EBTCount);
+                        map.putString("EBTAmount", batchResponse.EBTAmount);
                         map.putString("BatchNum", batchResponse.BatchNum);
                         map.putString("ExtData", batchResponse.ExtData);
                         map.putString("TID", batchResponse.TID);
-                        m_promise.resolve(map);
+                        promise.resolve(map);
                     }
                 }
                 break;
@@ -993,7 +989,7 @@ public void typicalMethod(/* any # of parameters if needed*/ Promise promise) { 
                 String title = msg.getData().getString(Constant.DIALOG_TITLE);
                 String message = msg.getData().getString(Constant.DIALOG_MESSAGE);
                 Toast.makeText(getReactApplicationContext(), title +'\n' + message, Toast.LENGTH_LONG).show();
-                m_promise.reject(CODE_ERROR, message);
+                promise.reject(CODE_ERROR, message);
                 break;
         }
     }
