@@ -629,7 +629,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
                 getCurrentActivity().runOnUiThread(new Runnable() {
                     public void run() {
                         promise.resolve("Printed");
-                        Toast.makeText(getReactApplicationContext(), receiptText, Toast.LENGTH_LONG).show();
+                        // Toast.makeText(getReactApplicationContext(), receiptText, Toast.LENGTH_LONG).show();
                         return;
                     }
                 });
