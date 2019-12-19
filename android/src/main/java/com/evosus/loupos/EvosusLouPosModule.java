@@ -1,20 +1,28 @@
 package com.evosus.loupos;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.drm.ProcessedData;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.IBinder;
 import android.os.Message;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.WritableMap;
 //import com.google.gson.Gson;
@@ -49,24 +57,139 @@ import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class EvosusLouPosModule extends ReactContextBaseJavaModule {
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+//public class EvosusLouPosModule extends ReactContextBaseJavaModule implements PresentationHelper.Listener {
+public class EvosusLouPosModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, ServiceConnection {
     private static final String TAG = "EvosusLouPosModule";
 
     private static final String CODE_ERROR = "CODE_ERROR";
     private final ReactApplicationContext reactContext;
 
-//    private PosLink posLink = null;
+    //    private PosLink posLink = null;
     private static CommSetting commSetting;
     private static Boolean bInited = false;
+
+    // This is used to communicate with the CustomerDisplay Service
+    private CustomerDisplayService customerDisplayService;
+
+    public void onNewIntent(Intent intent) {};
 
     public EvosusLouPosModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
+
+        // Add the listener for `onActivityResult`
+        reactContext.addActivityEventListener(this);
+        reactContext.addLifecycleEventListener(this);
+
+        //
+//        if (customerFacingManager != null) {
+//            customerFacingView = customerFacingManager.getCustomerFacingView();
+//        }
+
     }
+
+    public EvosusLouPosModule(ReactApplicationContext reactContext, CustomerFacingManager customerFacingManager) {
+        super(reactContext);
+        this.reactContext = reactContext;
+
+        // Add the listener for `onActivityResult`
+        reactContext.addActivityEventListener(this);
+
+//        if (customerFacingManager != null) {
+//            customerFacingView = customerFacingManager.getCustomerFacingView();
+//        }
+    }
+
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        getReactApplicationContext().onActivityResult(activity, requestCode, resultCode, data);
+        if (requestCode == 1234) {
+            getReactApplicationContext().startActivityForResult(data, 1234, null);
+        }
+    }
+
+    @Override
+    public void onHostResume() {
+        // Activity `onResume`
+        Intent intent= new Intent(getCurrentActivity(), CustomerDisplayService.class);
+        getReactApplicationContext().bindService(intent, this, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onHostPause() {
+        // Activity `onPause`
+        getReactApplicationContext().unbindService(this);
+    }
+
+    @Override
+    public void onHostDestroy() {
+        // Activity `onDestroy`
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        CustomerDisplayService.MyBinder b = (CustomerDisplayService.MyBinder) service;
+        customerDisplayService = b.getService();
+        Toast.makeText(getCurrentActivity(), "Connected to Customer Display", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+        customerDisplayService = null;
+    }
+
+//    @ReactMethod
+//    public void mySuperDuperFunction(Promise promise) {
+//        if (customerFacingView != null) {
+//            customerFacingView.mySuperDuperFunction(promise); // <-- Magic
+//        }
+//    }
 
     @Override
     public String getName() {
         return "EvosusLouPos";
+    }
+
+    /**
+     *
+     */
+    @ReactMethod
+    public void startCustomerDisplay() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (!Settings.canDrawOverlays(getReactApplicationContext())) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getReactApplicationContext().getPackageName()));
+
+                if (getCurrentActivity() != null)
+                    getCurrentActivity().startActivityForResult(intent,1234, null );
+            }
+            if (getCurrentActivity() != null)
+                getCurrentActivity().startService(new Intent(reactContext, CustomerDisplayService.class));
+
+        } else {
+            if (getCurrentActivity() != null)
+                getCurrentActivity().startService(new Intent(reactContext, CustomerDisplayService.class));
+        }
+    }
+
+    /**
+     *
+     */
+    @ReactMethod
+    public void stopCustomerDisplay() {
+        if (getCurrentActivity() != null)
+            getCurrentActivity().stopService(new Intent(reactContext, CustomerDisplayService.class));
+    }
+
+    /**
+     *
+     */
+    @ReactMethod
+    public void setCustomerDisplayTrxMD(String trxMarkdown) {
+
+        // This is used to communicate with the CustomerDisplay Service
+        customerDisplayService.setCustomerDisplayTrxMD(trxMarkdown);
     }
 
     /**
@@ -75,6 +198,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void getInitInfo(Promise promise)
     {
+//        ReactApplicationContext context = getReactApplicationContext();
+//        WebPresentationFragment webFrag = new WebPresentationFragment();
+//        webFrag.
+//        Intent intent = new Intent(context, MainActivity.class);
+//        context.startActivity(intent,);
+
         if (!validatePOSLink(promise)) return;
 
         ManageRequest manageRequest = new ManageRequest();
@@ -378,6 +507,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         commSetting.setTimeOut(timeout);
         commSetting.setEnableProxy(enableProxy);
         commSetting.setDestIP(ipAddress);
+        commSetting.setDestIP("192.168.202.225");
         commSetting.setBaudRate("9600");
         commSetting.setDestPort("10009");
         commSetting.setSerialPort("COM1");
@@ -435,107 +565,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         oneShotBatchTask.execute();
 
     }
-//
-//    private void processBatch() {
-//
-//        // Recommend to use single thread pool instead.
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                BatchRequest batchRequest = new BatchRequest();
-//                batchRequest.TransType = batchRequest.ParseTransType("BATCHCLOSE");
-//                batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
-//
-//                posLink.BatchRequest = batchRequest;
-//
-//                // ProcessTrans is Blocking call, will return when the transaction is complete.
-//                CountRunTime.start("Batch");
-//                ptr = posLink.ProcessTrans();
-//                CountRunTime.countPoint("Batch");
-//                getCurrentActivity().runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        taskCompleted(posLink, m_promise);
-//                    }
-//                });
-//            }
-//        }).start();
-//    }
-//
-//    private void processPayment2(final PaymentRequest request) {
-//
-//        // Recommend to use single thread pool instead.
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                posLink.PaymentRequest = request;
-//
-//                // ProcessTrans is Blocking call, will return when the transaction is complete.
-//                CountRunTime.start("Payment");
-//                ptr = posLink.ProcessTrans();
-//                CountRunTime.countPoint("Payment");
-//                getCurrentActivity().runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        taskCompleted(posLink, m_promise);
-//
-//                    }
-//                });
-//
-//            }
-//        }).start();
-//    }
-//
-//    private void processPayment(final PaymentRequest request, final Promise promise) {
-//
-//        // Recommend to use single thread pool instead.
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                posLink.PaymentRequest = request;
-//
-//                // ProcessTrans is Blocking call, will return when the transaction is complete.
-//                CountRunTime.start("Payment");
-//                ptr = posLink.ProcessTrans();
-//                CountRunTime.countPoint("Payment");
-//                getCurrentActivity().runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        taskCompleted(posLink, promise);
-//
-//                    }
-//                });
-//
-//            }
-//        }).start();
-//    }
-
-//
-//    private void processManage(final ManageRequest request, final Promise promise) {
-//
-//        // Recommend to use single thread pool instead.
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                posLink.ManageRequest = request;
-//
-//                // ProcessTrans is Blocking call, will return when the transaction is complete.
-//                CountRunTime.start("Manage");
-//                ptr = posLink.ProcessTrans();
-//                CountRunTime.countPoint("Manage");
-//                getCurrentActivity().runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        taskCompleted(posLink, promise);
-//                    }
-//                });
-//            }
-//        }).start();
-//    }
 
     /**
      * @param promise
@@ -1189,8 +1218,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
     }
 
     /*
-    * This method is for the first time setup of CommSetting
-    * */
+     * This method is for the first time setup of CommSetting
+     * */
     private static CommSetting setupSetting(Context context) {
 
         String settingIniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
@@ -1226,50 +1255,5 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule {
         }
         return SettingINI.getCommSettingFromFile(settingIniFile);
     }
-//
-//    private CommercialCard getCommercialCard(ReadableMap commercialCard) {
-//
-//        // Init return object
-//        CommercialCard pComm = new CommercialCard();
-//
-//        pComm.CustomerCode = commercialCard.getString("CustomerCode");
-//        pComm.PONumber = commercialCard.getString("PONumber");
-//        pComm.TaxExempt = commercialCard.getString("TaxExempt");
-//        pComm.ProductDescription = commercialCard.getString("ProductDescription");
-//        pComm.OrderDate = commercialCard.getString("OrderDate");
-//
-//        ReadableArray taxDetails = commercialCard.getArray("TaxDetails");
-//        List taxDetailList = new ArrayList<CommercialCard.TaxDetail>();
-//        for (int i = 0; i < taxDetails.size() ; i++) {
-//            ReadableMap taxItem = taxDetails.getMap(i);
-//            CommercialCard.TaxDetail taxDetail = new CommercialCard.TaxDetail();
-//            taxDetail.TaxAmount = taxItem.getString("TaxAmount");
-//            taxDetail.CustomerTaxID = taxItem.getString("CustomerTaxID");
-//            taxDetail.TaxRate = taxItem.getString("TaxRate");
-//            taxDetail.VATInvoiceNumber = taxItem.getString("VATInvoiceNumber");
-//            taxDetailList.add(taxDetail);
-//        }
-//        // Set TaxDetails
-//        pComm.TaxDetails = taxDetailList;
-//
-//        ReadableArray lineItemDetails = commercialCard.getArray("LineItemDetails");
-//        List lineItemDetailList = new ArrayList<CommercialCard.LineItemDetail>();
-//        for (int i = 0; i < lineItemDetails.size() ; i++) {
-//            ReadableMap lineItem = lineItemDetails.getMap(i);
-//            CommercialCard.LineItemDetail lineItemDetail = new CommercialCard.LineItemDetail();
-//            lineItemDetail.ProductCode = lineItem.getString("ProductCode");
-//            lineItemDetail.ItemCommodityCode = lineItem.getString("ItemCommodityCode");
-//            lineItemDetail.ItemDescription = lineItem.getString("ItemDescription");
-//            lineItemDetail.ItemQuantity = lineItem.getString("ItemQuantity");
-//            lineItemDetail.ItemUnitPrice = lineItem.getString("ItemUnitPrice");
-//            lineItemDetail.LineItemTotal = lineItem.getString("LineItemTotal");
-//            lineItemDetailList.add(lineItemDetail);
-//        }
-//
-//        // Set LineItemDetails
-//        pComm.LineItemDetails = lineItemDetailList;
-//
-//        return pComm;
-//    }
 
 }

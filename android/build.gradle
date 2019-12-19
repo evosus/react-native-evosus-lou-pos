@@ -21,38 +21,51 @@ apply plugin: 'maven'
 // https://github.com/facebook/react-native/blob/0.59-stable/template/android/build.gradle#L5-L9
 def DEFAULT_COMPILE_SDK_VERSION = 28
 def DEFAULT_BUILD_TOOLS_VERSION = "28.0.3"
-def DEFAULT_MIN_SDK_VERSION = 16
+def DEFAULT_MIN_SDK_VERSION = 17
 def DEFAULT_TARGET_SDK_VERSION = 28
 
 android {
-  compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
-  buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
+    compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
+    buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
 
-  defaultConfig {
-    minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
-    targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
-    versionCode 9
-    versionName "1.7"
-      signingConfig signingConfigs.debug
-  }
-  lintOptions {
-    abortOnError false
-  }
+    defaultConfig {
+        minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
+        targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
+        versionCode 11
+        versionName "1.9"
+        signingConfig signingConfigs.debug
+    }
+    lintOptions {
+        abortOnError false
+    }
 }
 
 repositories {
+    maven {
+        url "https://s3.amazonaws.com/repo.commonsware.com"
+    }
+
     maven {
         // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
         // Matches recent template from React Native (0.59)
         // https://github.com/facebook/react-native/blob/0.59-stable/template/android/build.gradle#L30
         url "$projectDir/../node_modules/react-native/android"
     }
+    maven {
+        url 'https://maven.google.com'
+    }
     mavenCentral()
 }
+
+final def
+        markwon_version = '4.2.0'
 
 dependencies {
     implementation files('libs/PAX_POSLinkAndroid_20190816.aar')
     implementation "com.facebook.react:react-native:${safeExtGet('reactnativeVersion', '+')}"
+    implementation 'com.commonsware.cwac:presentation.x:0.6.1'
+    implementation "io.noties.markwon:core:$markwon_version"
+    implementation "io.noties.markwon:ext-tables:$markwon_version"
 }
 
 def configureReactNativePom(def pom) {
