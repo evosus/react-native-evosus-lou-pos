@@ -3,5 +3,6 @@
     <string name="cancel">Cancel</string>
     <string name="msg_stop">Stop Service</string>
 
+    <string name="secondary">You should see content on the secondary display!</string>
     <string name="msg_foreground">Customer facing display running</string>
 </resources>
