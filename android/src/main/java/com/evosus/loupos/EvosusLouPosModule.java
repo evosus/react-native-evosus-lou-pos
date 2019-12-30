@@ -507,7 +507,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         commSetting.setTimeOut(timeout);
         commSetting.setEnableProxy(enableProxy);
         commSetting.setDestIP(ipAddress);
-        commSetting.setDestIP("192.168.202.225");
         commSetting.setBaudRate("9600");
         commSetting.setDestPort("10009");
         commSetting.setSerialPort("COM1");
