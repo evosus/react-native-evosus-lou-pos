@@ -10,7 +10,7 @@ buildscript {
     dependencies {
         // Matches recent template from React Native (0.60)
         // https://github.com/facebook/react-native/blob/0.60-stable/template/android/build.gradle#L16
-        classpath("com.android.tools.build:gradle:${safeExtGet('gradlePluginVersion', '3.5.0')}")
+        classpath("com.android.tools.build:gradle:${safeExtGet('gradlePluginVersion', '3.5.3')}")
     }
 }
 
@@ -61,7 +61,7 @@ final def
         markwon_version = '4.2.0'
 
 dependencies {
-    implementation files('libs/PAX_POSLinkAndroid_20190816.aar')
+    implementation files('libs/PAX_POSLinkAndroid_20191120.aar')
     implementation "com.facebook.react:react-native:${safeExtGet('reactnativeVersion', '+')}"
     implementation 'com.commonsware.cwac:presentation.x:0.6.1'
     implementation "io.noties.markwon:core:$markwon_version"
@@ -118,8 +118,8 @@ afterEvaluate { project ->
 
     android.libraryVariants.all { variant ->
         def name = variant.name.capitalize()
-        task "jar${name}"(type: Jar, dependsOn: variant.javaCompile) {
-            from variant.javaCompile.destinationDir
+        task "jar${name}"(type: Jar, dependsOn: variant.javaCompileProvider) {
+            from variant.javaCompileProvider.get().destinationDir
         }
     }
 
