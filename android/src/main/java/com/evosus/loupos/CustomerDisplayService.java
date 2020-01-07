@@ -43,6 +43,8 @@ import org.commonmark.node.Node;
 import io.noties.markwon.Markwon;
 import io.noties.markwon.ext.tables.TablePlugin;
 import io.noties.markwon.ext.tables.TableTheme;
+import io.noties.markwon.html.HtmlPlugin;
+import io.noties.markwon.image.ImagesPlugin;
 
 public class CustomerDisplayService extends PresentationService implements Runnable {
 
@@ -134,6 +136,8 @@ public class CustomerDisplayService extends PresentationService implements Runna
 
         markwon = Markwon.builder(ctxt)
                 .usePlugin(TablePlugin.create(tableTheme))
+                .usePlugin(HtmlPlugin.create())
+                .usePlugin(ImagesPlugin.create())
                 .build();
 
         textView = new TextView(ctxt);
