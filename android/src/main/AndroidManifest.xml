@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.evosus.loupos">
+    package="com.evosus.loupos">
 
+    <uses-feature android:name="android.hardware.usb.host" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <application>
+        <service
+            android:name=".CustomerDisplayService">
+        </service>
+    </application>
 </manifest>
