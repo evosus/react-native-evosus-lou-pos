@@ -1,7 +1,7 @@
 
 package com.evosus.loupos;
 
-public class Constant {
+public class    Constant {
     public static final int TRANSACTION_SUCCESSED = 100;  //transaction success
 
     public static final int TRANSACTION_FAILURE = 101; //transaction failure

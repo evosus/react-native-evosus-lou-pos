@@ -51,6 +51,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.pax.poslink.poslink.POSLinkCreator;
 import com.pax.poslink.util.CountRunTime;
 
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -58,6 +59,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 //public class EvosusLouPosModule extends ReactContextBaseJavaModule implements PresentationHelper.Listener {
 public class EvosusLouPosModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, ServiceConnection {
@@ -132,7 +140,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     public void onServiceConnected(ComponentName name, IBinder service) {
         CustomerDisplayService.MyBinder b = (CustomerDisplayService.MyBinder) service;
         customerDisplayService = b.getService();
-        Toast.makeText(getCurrentActivity(), "Connected to Customer Display", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getCurrentActivity(), "Connected to Customer Display", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -1138,6 +1146,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         map.putString("RefNum", paymentResponse.RefNum);
                         map.putString("CardType", paymentResponse.CardType);
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
+                        map.putString("TransactionId", "");
+                        map.putString("CardOnFileTransactionId", "");
+
+                        //Use method to convert XML string content to XML Document object
+                        Document doc = convertStringToXMLDocument( "<body>" + paymentResponse.ExtData + "</body>");
+                        if (doc != null) {
+                            String TransactionID = getElementByTagName(doc, "HRef");
+                            String COFTransactionID = getElementByTagName(doc, "TransactionIdentifier");
+                            map.putString("TransactionId", TransactionID);
+                            map.putString("CardOnFileTransactionId", COFTransactionID);
+                        }
                         promise.resolve(map);
                     }
                     else if (msg.obj instanceof BatchResponse) {
@@ -1195,7 +1214,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case Constant.TRANSACTION_FAILURE:
                 String title = msg.getData().getString(Constant.DIALOG_TITLE);
                 String message = msg.getData().getString(Constant.DIALOG_MESSAGE);
-                Toast.makeText(getReactApplicationContext(), title +'\n' + message, Toast.LENGTH_LONG).show();
                 promise.reject(CODE_ERROR, message);
                 break;
         }
@@ -1253,6 +1271,44 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             SettingINI.saveLogSettingToFile(settingIniFile);
         }
         return SettingINI.getCommSettingFromFile(settingIniFile);
+    }
+
+
+    private static String getElementByTagName(Document document, String tagName) {
+
+        // Returns value of first element matching tag name
+        NodeList nodeList = document.getElementsByTagName(tagName);
+        if (nodeList == null)
+            return "";
+
+        if (nodeList.getLength() ==  0)
+            return "";
+
+        return nodeList.item(0).getFirstChild().getNodeValue();
+
+    }
+
+    private static Document convertStringToXMLDocument(String xmlString)
+    {
+        //Parser that produces DOM object trees from XML content
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+        //API to obtain DOM Document instance
+        DocumentBuilder builder = null;
+        try
+        {
+            //Create DocumentBuilder with default configuration
+            builder = factory.newDocumentBuilder();
+
+            //Parse the content to Document object
+            Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
+            return doc;
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

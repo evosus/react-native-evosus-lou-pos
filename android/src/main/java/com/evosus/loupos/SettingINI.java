@@ -19,6 +19,7 @@ public class SettingINI {
 
 
     private final static String Deft = "";
+    private final static String DeftTimeout = "30000";
 
     private final static String SectionComm = "COMMUNICATE";
     private final static String TagComm = "CommType";
@@ -62,7 +63,7 @@ public class SettingINI {
         ini.setSection(SectionComm);
 
         CommSetting commsetting = new CommSetting();
-        commsetting.setTimeOut(ini.read(TagTimeout, Deft));
+        commsetting.setTimeOut(ini.read(TagTimeout, DeftTimeout));
         commsetting.setType(ini.read(TagComm, Deft));
         commsetting.setSerialPort(ini.read(TagPortnum, Deft));
         commsetting.setBaudRate(ini.read(TagBaudrate, Deft));
