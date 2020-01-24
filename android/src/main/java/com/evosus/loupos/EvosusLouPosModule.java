@@ -53,6 +53,7 @@ import com.pax.poslink.util.CountRunTime;
 
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
@@ -1148,14 +1149,42 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         map.putString("AvsResponse", paymentResponse.AvsResponse);
                         map.putString("TransactionId", "");
                         map.putString("CardOnFileTransactionId", "");
+                        map.putString("Token", "");
+                        map.putString("ExpDate", "");
+                        map.putString("EntryMode", "");
 
                         //Use method to convert XML string content to XML Document object
                         Document doc = convertStringToXMLDocument( "<body>" + paymentResponse.ExtData + "</body>");
                         if (doc != null) {
                             String TransactionID = getElementByTagName(doc, "HRef");
                             String COFTransactionID = getElementByTagName(doc, "TransactionIdentifier");
+                            String Token = getElementByTagName(doc, "Token");
+                            String ExpDate = getElementByTagName(doc, "ExpDate");
+                            String EntryMode = getElementByTagName(doc, "PLEntryMode");
                             map.putString("TransactionId", TransactionID);
                             map.putString("CardOnFileTransactionId", COFTransactionID);
+                            map.putString("Token", Token);
+                            map.putString("ExpDate", ExpDate);
+                            switch (EntryMode) {
+                                case "0":
+                                    map.putString("EntryMode", "MANUAL");
+                                    break;
+                                case "1":
+                                    map.putString("EntryMode", "SWIPED");
+                                    break;
+                                case "2":
+                                    map.putString("EntryMode", "CONTACTLESS");
+                                    break;
+                                case "3":
+                                    map.putString("EntryMode", "SCANNER");
+                                    break;
+                                case "4":
+                                    map.putString("EntryMode", "CHIP");
+                                    break;
+                                case "5":
+                                    map.putString("EntryMode", "FALLBACK SWIPE");
+                                    break;
+                            }
                         }
                         promise.resolve(map);
                     }
