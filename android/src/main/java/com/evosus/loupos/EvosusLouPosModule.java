@@ -26,6 +26,7 @@ import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.WritableMap;
 //import com.google.gson.Gson;
+import com.facebook.react.module.annotations.ReactModule;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
 import com.pax.poslink.CommSetting;
@@ -51,15 +52,15 @@ import com.facebook.react.bridge.ReactMethod;
 import com.pax.poslink.poslink.POSLinkCreator;
 import com.pax.poslink.util.CountRunTime;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -68,9 +69,10 @@ import org.xml.sax.InputSource;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-//public class EvosusLouPosModule extends ReactContextBaseJavaModule implements PresentationHelper.Listener {
+@ReactModule(name = EvosusLouPosModule.NAME)
 public class EvosusLouPosModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, ServiceConnection {
-    private static final String TAG = "EvosusLouPosModule";
+
+    public static final String NAME = "EvosusLouPos";
 
     private static final String CODE_ERROR = "CODE_ERROR";
     private final ReactApplicationContext reactContext;
@@ -78,6 +80,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     //    private PosLink posLink = null;
     private static CommSetting commSetting;
     private static Boolean bInited = false;
+    private static String currentPageName = "";
 
     // This is used to communicate with the CustomerDisplay Service
     private CustomerDisplayService customerDisplayService;
@@ -224,12 +227,57 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     /**
+     * @param pageName
+     */
+    @ReactMethod
+    public void setCurrentPageName(String pageName) {
+
+        currentPageName = pageName;
+    }
+
+    private String readTextFile(InputStream inputStream) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        byte buf[] = new byte[1024];
+        int len;
+        try {
+            while ((len = inputStream.read(buf)) != -1) {
+                outputStream.write(buf, 0, len);
+            }
+            outputStream.close();
+            inputStream.close();
+        } catch (IOException e) {
+
+        }
+        return outputStream.toString();
+    }
+    /**
+     */
+    @ReactMethod
+    public void getRuntimeUrl(Promise promise) {
+
+        InputStream inputStream = getReactApplicationContext().getResources().openRawResource(
+                getReactApplicationContext().getResources().getIdentifier("runtime_url",
+                        "raw", getReactApplicationContext().getPackageName()));
+
+        String runtime_url = readTextFile(inputStream);
+        promise.resolve(runtime_url.trim());
+    }
+
+    /**
      * @param message
      */
     @ReactMethod
     public void showToast(String message) {
         Toast.makeText(getReactApplicationContext(), message, Toast.LENGTH_LONG).show();
     }
+    /**
+     */
+    @ReactMethod
+    public String getCurrentPageName() {
+        return currentPageName;
+    }
+
 
     /**
      *
@@ -733,7 +781,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View v) {
-                        Log.i(TAG, "onClick l_allowCancel = " + String.valueOf(l_allowCancel));
+                        Log.i(NAME, "onClick l_allowCancel = " + String.valueOf(l_allowCancel));
                         if (l_allowCancel) {
                             l_posLink.CancelTrans();
                             dialog.dismiss();
@@ -1073,7 +1121,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 handleMessage(msg, promise, transType);
             }
 
-            Log.i(TAG, "Transaction success!");
+            Log.i(NAME, "Transaction success!");
 
         } else if (ptr.Code == ProcessTransResult.ProcessTransResultCode.TimeOut) {
             Message msg = new Message();
@@ -1084,8 +1132,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             msg.setData(b);
             handleMessage(msg, promise, transType);
 
-            Log.e(TAG, "Transaction Timeout! " + String.valueOf(ptr.Code));
-            Log.e(TAG, "Transaction Timeout! " + ptr.Msg);
+            Log.e(NAME, "Transaction Timeout! " + String.valueOf(ptr.Code));
+            Log.e(NAME, "Transaction Timeout! " + ptr.Msg);
         } else {
             Message msg = new Message();
             msg.what = Constant.TRANSACTION_FAILURE;
@@ -1095,8 +1143,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             msg.setData(b);
             handleMessage(msg, promise, transType);
 
-            Log.e(TAG, "Transaction Error! " + String.valueOf(ptr.Code));
-            Log.e(TAG, "Transaction Error! " + ptr.Msg);
+            Log.e(NAME, "Transaction Error! " + String.valueOf(ptr.Code));
+            Log.e(NAME, "Transaction Error! " + ptr.Msg);
         }
     }
 
