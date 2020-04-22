@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +21,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.evosus.loupos.models.CustomerDisplay;
+import com.evosus.loupos.models.LOUAPIJWT;
+import com.evosus.loupos.models.SKU;
+import com.evosus.loupos.models.TSYSMerchant;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
@@ -27,6 +32,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.WritableMap;
 //import com.google.gson.Gson;
 import com.facebook.react.module.annotations.ReactModule;
+import com.google.gson.Gson;
 import com.pax.poslink.BatchRequest;
 import com.pax.poslink.BatchResponse;
 import com.pax.poslink.CommSetting;
@@ -35,7 +41,7 @@ import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
 import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
-//import com.pax.poslink.PaymentRequest.CommercialCard;
+//import com.pax.poslink.PaymentReqfuest.CommercialCard;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
@@ -68,6 +74,12 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
+import io.realm.Case;
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmList;
+import io.realm.RealmResults;
 
 @ReactModule(name = EvosusLouPosModule.NAME)
 public class EvosusLouPosModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, ServiceConnection {
@@ -604,6 +616,18 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         POSLinkAndroid.init(getReactApplicationContext(), commSetting);
     }
 
+    private Realm getRealmConfiguration() {
+        // The RealmConfiguration is created using the builder pattern.
+        // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
+        RealmConfiguration config = new RealmConfiguration.Builder()
+                .name("evosus.db")
+                .schemaVersion(42)
+                .build();
+        // Use the config
+        //Realm realm = Realm.getInstance(config);
+        return  Realm.getInstance(config);
+    }
+
     /**
      * @param promise
      */
@@ -620,6 +644,223 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         OneShotBatchTask oneShotBatchTask = new OneShotBatchTask(promise, batchRequest, "BATCHCLOSE");
         oneShotBatchTask.execute();
 
+    }
+
+    /**
+     * @param entityName
+     * @param jsonString
+     * @param promise
+     */
+    @ReactMethod
+    public void loadRealmFromJSON(String entityName, String jsonString, Promise promise) {
+
+        Realm realm = getRealmConfiguration();
+        if (realm == null)
+            promise.resolve(false);
+
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(CustomerDisplay.class, jsonString);
+                //final RealmResults<CustomerDisplay> customerDisplays = realm.where(CustomerDisplay.class).findAll();
+                realm.commitTransaction();
+//                Log.i(this.getName(), "Count " + entityName + ": " + customerDisplays.size());
+                break;
+            case "Inventory.SKU":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(SKU.class, jsonString);
+                //final RealmResults<SKU> skus = realm.where(SKU.class).findAll();
+                realm.commitTransaction();
+//                Log.i(this.getName(), "Count " + entityName + ": " + skus.size());
+                break;
+            case "LOUAPI.LOUAPIJWT":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(LOUAPIJWT.class, jsonString);
+//                final RealmResults<LOUAPIJWT> louapijwts = realm.where(LOUAPIJWT.class).findAll();
+                realm.commitTransaction();
+//                Log.i(this.getName(), "Count " + entityName + ": " + louapijwts.size());
+                break;
+            case "TSYS.TSYSMerchant":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(TSYSMerchant.class, jsonString);
+//                final RealmResults<TSYSMerchant> tsysMerchants = realm.where(TSYSMerchant.class).findAll();
+                realm.commitTransaction();
+//                Log.i(this.getName(), "Count " + entityName + ": " + tsysMerchants.size());
+                break;
+        }
+        // This is important
+        realm.close();
+
+        promise.resolve(true);
+
+    }
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void findFirstRealmEntityByID(String entityName, String entityID, Boolean UseSKUID, Promise promise) {
+
+        Realm realm = getRealmConfiguration();
+
+        if (realm == null)
+            promise.resolve(false);
+
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                final CustomerDisplay customerDisplay = realm.where(CustomerDisplay.class).equalTo("CustomerVanityID", entityID).findFirst();
+                if (customerDisplay != null) {
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
+                    Log.i(this.getName(), "Lookup on CustomerVanityID for " + entityName);
+                } else {
+                    promise.reject("CustomerDisplay not found.");
+                }
+                break;
+            case "Inventory.SKU":
+                Log.e(this.getName(), "UseSKUID = " + UseSKUID);
+                final SKU sku = UseSKUID?realm.where(SKU.class).equalTo("ReadableID", entityID).findFirst():realm.where(SKU.class).equalTo("UPC", entityID).or().equalTo("MySKU", entityID).findFirst();
+                if (sku != null) {
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
+                    Log.i(this.getName(), "Lookup on ReadableID for " + entityName);
+                } else {
+                    promise.reject("SKU not found.");
+                }
+                break;
+            case "LOUAPI.LOUAPIJWT":
+                final LOUAPIJWT louapijwt = realm.where(LOUAPIJWT.class).equalTo("Key", entityID).findFirst();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(louapijwt)));
+                Log.i(this.getName(), "Lookup on Key for " + entityName);
+                break;
+            case "TSYS.TSYSMerchant":
+                final TSYSMerchant tsysMerchant = realm.where(TSYSMerchant.class).equalTo("_ID", entityID).findFirst();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(tsysMerchant)));
+                Log.i(this.getName(), "Lookup on _ID for " + entityName);
+                break;
+        }
+
+        // This is important
+        realm.close();
+
+        promise.resolve(true);
+    }
+
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void findAllEntity(String entityName, String searchString, Integer limit, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        Boolean search = (searchString != null && !searchString.isEmpty());
+        if (realm == null)
+            promise.resolve(false);
+
+        Log.i(this.getName(), "Searching: " + search);
+        Log.i(this.getName(), "Limiting results to " + limit);
+        if (search) Log.i(this.getName(), "Search String: " + searchString);
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                final RealmResults<CustomerDisplay> customerDisplay = search?realm.where(CustomerDisplay.class)
+                        .contains("DropdownSearchString", searchString, Case.INSENSITIVE)
+                        .limit(limit)
+                        .findAll():realm.where(CustomerDisplay.class).limit(limit).findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
+                Log.i(this.getName(), "Find All " + entityName);
+                break;
+            case "Inventory.SKU":
+                final RealmResults<SKU> sku = search?realm.where(SKU.class)
+                        .contains("MySKU", searchString, Case.INSENSITIVE)
+                        .or()
+                        .contains("UPC", searchString, Case.INSENSITIVE)
+                        .or()
+                        .contains("Description", searchString, Case.INSENSITIVE)
+                        .limit(limit)
+                        .findAll():realm.where(SKU.class).limit(limit).findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
+                Log.i(this.getName(), "Find All  " + entityName);
+                break;
+        }
+        promise.resolve(true);
+
+        // This is important
+        realm.close();
+    }
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void deleteRealmEntity(String entityName, Promise promise) {
+        Realm realm = getRealmConfiguration();
+
+        if (realm == null)
+            promise.resolve(false);
+
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                realm.beginTransaction();
+                realm.delete(CustomerDisplay.class);
+                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "Inventory.SKU":
+                realm.beginTransaction();
+                realm.delete(SKU.class);
+                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "LOUAPI.LOUAPIJWT":
+                realm.delete(LOUAPIJWT.class);
+                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                break;
+            case "TSYS.TSYSMerchant":
+                realm.delete(TSYSMerchant.class);
+                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                break;
+        }
+
+        // This is important
+        realm.close();
+
+        promise.resolve(true);
+    }
+
+    /**
+     * @param promise
+     */
+    @ReactMethod
+    public void deleteRealmDB(Promise promise) {
+
+        Realm.deleteRealm(Realm.getDefaultConfiguration());
+
+        Log.i(this.getName(), "DeleteRealm");
+        promise.resolve(true);
+    }
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void countEntity(String entityName, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        Log.i(this.getName(), "Counting " + entityName);
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                final long CustomerDisplays = realm.where(CustomerDisplay.class).count();
+//                Integer i = new Integer(CustomerDisplays);
+                promise.resolve((int)CustomerDisplays);
+                Log.i(this.getName(), "Counted " + CustomerDisplays + ' ' +  entityName);
+                break;
+            case "Inventory.SKU":
+                final long SKUs = realm.where(SKU.class).count();
+                promise.resolve((int)SKUs);
+                Log.i(this.getName(), "Counted " + SKUs + ' ' +  entityName);
+                break;
+        }
     }
 
     /**
