@@ -11,6 +11,8 @@ import com.facebook.react.uimanager.ViewManager;
 import com.facebook.react.bridge.JavaScriptModule;
 import com.facebook.react.views.image.ReactImageManager;
 
+import io.realm.Realm;
+
 public class EvosusLouPosPackage implements ReactPackage {
 
     private CustomerFacingManager customerFacingManager;
@@ -23,6 +25,7 @@ public class EvosusLouPosPackage implements ReactPackage {
 //        return Arrays.<NativeModule>asList(
 //            new EvosusLouPosModule(reactContext, customerFacingManager)
 //        );
+
         return Arrays.<NativeModule>asList(
                 new EvosusLouPosModule(reactContext)
         );
