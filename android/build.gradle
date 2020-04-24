@@ -16,6 +16,7 @@ buildscript {
 
 apply plugin: 'com.android.library'
 apply plugin: 'maven'
+apply plugin: 'realm-android'
 
 // Matches values in recent template from React Native (0.59)
 // https://github.com/facebook/react-native/blob/0.59-stable/template/android/build.gradle#L5-L9
@@ -68,6 +69,7 @@ dependencies {
     implementation "io.noties.markwon:ext-tables:$markwon_version"
     implementation "io.noties.markwon:html:$markwon_version"
     implementation "io.noties.markwon:image:$markwon_version"
+    implementation "com.google.code.gson:gson:2.7"
 }
 
 def configureReactNativePom(def pom) {
