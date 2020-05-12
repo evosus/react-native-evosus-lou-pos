@@ -33,8 +33,8 @@ android {
     defaultConfig {
         minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
         targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
-        versionCode 20
-        versionName "1.18"
+        versionCode 21
+        versionName "1.19"
         signingConfig signingConfigs.debug
     }
     lintOptions {
