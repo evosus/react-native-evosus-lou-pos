@@ -22,6 +22,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.evosus.loupos.models.CustomerDisplay;
+import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
 import com.evosus.loupos.models.SKU;
 import com.evosus.loupos.models.TSYSMerchant;
@@ -687,6 +688,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 realm.commitTransaction();
 //                Log.i(this.getName(), "Count " + entityName + ": " + tsysMerchants.size());
                 break;
+            case "AdminConsole.EvosusCompany":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(EvosusCompany.class, jsonString);
+                realm.commitTransaction();
+                break;
         }
         // This is important
         realm.close();
@@ -706,7 +712,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         if (realm == null)
             promise.resolve(false);
-
+        Log.i(this.getName(), entityName + ": " + entityID);
         switch (entityName) {
             case "ProductSetup.CustomerDisplay":
                 final CustomerDisplay customerDisplay = realm.where(CustomerDisplay.class).equalTo("CustomerVanityID", entityID).findFirst();
@@ -736,6 +742,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 final TSYSMerchant tsysMerchant = realm.where(TSYSMerchant.class).equalTo("_ID", entityID).findFirst();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(tsysMerchant)));
                 Log.i(this.getName(), "Lookup on _ID for " + entityName);
+                break;
+            case "AdminConsole.EvosusCompany":
+                try {
+                    final EvosusCompany evosusCompany = realm.where(EvosusCompany.class).equalTo("SerialNumber", entityID).findFirst();
+                    if (evosusCompany != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(evosusCompany)));
+                        Log.i(this.getName(), "Lookup on SerialNumber for " + entityName);
+                    } else {
+                        promise.resolve("");
+                    }
+                }
+                catch (Error e) {
+                    Log.i(this.getName(), e.getMessage());
+                }
                 break;
         }
 
@@ -820,6 +840,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 realm.delete(TSYSMerchant.class);
                 Log.i(this.getName(), "Deleted realm entity " + entityName);
                 break;
+            case "AdminConsole.EvosusCompany":
+                realm.beginTransaction();
+                realm.delete(EvosusCompany.class);
+                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
         }
 
         // This is important
@@ -859,6 +885,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 final long SKUs = realm.where(SKU.class).count();
                 promise.resolve((int)SKUs);
                 Log.i(this.getName(), "Counted " + SKUs + ' ' +  entityName);
+                break;
+            case "AdminConsole.EvosusCompany":
+                final long EvosusCompanies = realm.where(EvosusCompany.class).count();
+                promise.resolve((int)EvosusCompanies);
+                Log.i(this.getName(), "Counted " + EvosusCompanies + ' ' +  entityName);
                 break;
         }
     }
