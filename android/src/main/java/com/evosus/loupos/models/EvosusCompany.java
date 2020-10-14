@@ -14,7 +14,7 @@ public class EvosusCompany extends RealmObject {
         return SerialNumber;
     }
 
-    public void setSerialNumber(String SKUType) {
+    public void setSerialNumber(String SerialNumber) {
         this.SerialNumber = SerialNumber;
     }
 

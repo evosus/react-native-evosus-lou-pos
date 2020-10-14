@@ -24,8 +24,10 @@ import android.widget.Toast;
 import com.evosus.loupos.models.CustomerDisplay;
 import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
+import com.evosus.loupos.models.POS_LineItem;
 import com.evosus.loupos.models.SKU;
 import com.evosus.loupos.models.TSYSMerchant;
+import com.evosus.loupos.models.POS_Transaction;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
@@ -64,6 +66,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
@@ -655,6 +659,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void loadRealmFromJSON(String entityName, String jsonString, Promise promise) {
 
+        Log.e(this.getName(), entityName);
+
+        if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
+            jsonString = '[' + jsonString + ']';
+        }
         Realm realm = getRealmConfiguration();
         if (realm == null)
             promise.resolve(false);
@@ -663,34 +672,36 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case "ProductSetup.CustomerDisplay":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(CustomerDisplay.class, jsonString);
-                //final RealmResults<CustomerDisplay> customerDisplays = realm.where(CustomerDisplay.class).findAll();
                 realm.commitTransaction();
-//                Log.i(this.getName(), "Count " + entityName + ": " + customerDisplays.size());
                 break;
             case "Inventory.SKU":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(SKU.class, jsonString);
-                //final RealmResults<SKU> skus = realm.where(SKU.class).findAll();
                 realm.commitTransaction();
-//                Log.i(this.getName(), "Count " + entityName + ": " + skus.size());
                 break;
             case "LOUAPI.LOUAPIJWT":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(LOUAPIJWT.class, jsonString);
-//                final RealmResults<LOUAPIJWT> louapijwts = realm.where(LOUAPIJWT.class).findAll();
                 realm.commitTransaction();
-//                Log.i(this.getName(), "Count " + entityName + ": " + louapijwts.size());
                 break;
             case "TSYS.TSYSMerchant":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(TSYSMerchant.class, jsonString);
-//                final RealmResults<TSYSMerchant> tsysMerchants = realm.where(TSYSMerchant.class).findAll();
                 realm.commitTransaction();
-//                Log.i(this.getName(), "Count " + entityName + ": " + tsysMerchants.size());
                 break;
             case "AdminConsole.EvosusCompany":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(EvosusCompany.class, jsonString);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_Transaction":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(POS_Transaction.class, jsonString);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_LineItem":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(POS_LineItem.class, jsonString);
                 realm.commitTransaction();
                 break;
         }
@@ -712,13 +723,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         if (realm == null)
             promise.resolve(false);
-        Log.i(this.getName(), entityName + ": " + entityID);
+        Log.d(this.getName(), "findFirstRealmEntityByID " + entityName + ": " + entityID);
         switch (entityName) {
             case "ProductSetup.CustomerDisplay":
                 final CustomerDisplay customerDisplay = realm.where(CustomerDisplay.class).equalTo("CustomerVanityID", entityID).findFirst();
                 if (customerDisplay != null) {
                     promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
-                    Log.i(this.getName(), "Lookup on CustomerVanityID for " + entityName);
+                    Log.d(this.getName(), "Lookup on CustomerVanityID for " + entityName);
                 } else {
                     promise.reject("CustomerDisplay not found.");
                 }
@@ -728,7 +739,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 final SKU sku = UseSKUID?realm.where(SKU.class).equalTo("ReadableID", entityID).findFirst():realm.where(SKU.class).equalTo("UPC", entityID).or().equalTo("MySKU", entityID).findFirst();
                 if (sku != null) {
                     promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
-                    Log.i(this.getName(), "Lookup on ReadableID for " + entityName);
+                    Log.d(this.getName(), "Lookup on ReadableID for " + entityName);
                 } else {
                     promise.reject("SKU not found.");
                 }
@@ -736,25 +747,43 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case "LOUAPI.LOUAPIJWT":
                 final LOUAPIJWT louapijwt = realm.where(LOUAPIJWT.class).equalTo("Key", entityID).findFirst();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(louapijwt)));
-                Log.i(this.getName(), "Lookup on Key for " + entityName);
+                Log.d(this.getName(), "Lookup on Key for " + entityName);
                 break;
             case "TSYS.TSYSMerchant":
                 final TSYSMerchant tsysMerchant = realm.where(TSYSMerchant.class).equalTo("_ID", entityID).findFirst();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(tsysMerchant)));
-                Log.i(this.getName(), "Lookup on _ID for " + entityName);
+                Log.d(this.getName(), "Lookup on _ID for " + entityName);
                 break;
             case "AdminConsole.EvosusCompany":
                 try {
                     final EvosusCompany evosusCompany = realm.where(EvosusCompany.class).equalTo("SerialNumber", entityID).findFirst();
                     if (evosusCompany != null) {
                         promise.resolve(new Gson().toJson(realm.copyFromRealm(evosusCompany)));
-                        Log.i(this.getName(), "Lookup on SerialNumber for " + entityName);
+                        Log.d(this.getName(), "Lookup on SerialNumber for " + entityName);
                     } else {
                         promise.resolve("");
                     }
                 }
                 catch (Error e) {
-                    Log.i(this.getName(), e.getMessage());
+                    Log.d(this.getName(), e.getMessage());
+                }
+                break;
+            case "POS.POS_Transaction":
+                final POS_Transaction pos_transaction = realm.where(POS_Transaction.class).equalTo("ID_", entityID).findFirst();
+                if (pos_transaction != null) {
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
+                    Log.d(this.getName(), "Lookup on POS_Transaction _ID for " + entityName);
+                } else {
+                    promise.reject("POS_Transaction not found.");
+                }
+                break;
+            case "POS.POS_LineItem":
+                final POS_LineItem pos_lineitem = realm.where(POS_LineItem.class).equalTo("ID_", entityID).findFirst();
+                if (pos_lineitem != null) {
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
+                    Log.d(this.getName(), "Lookup on POS_LineItem _ID for " + entityName);
+                } else {
+                    promise.reject("POS_LineItem not found.");
                 }
                 break;
         }
@@ -777,9 +806,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         if (realm == null)
             promise.resolve(false);
 
-        Log.i(this.getName(), "Searching: " + search);
-        Log.i(this.getName(), "Limiting results to " + limit);
-        if (search) Log.i(this.getName(), "Search String: " + searchString);
+        Log.d(this.getName(), "Searching: " + search);
+        Log.d(this.getName(), "Limiting results to " + limit);
+        if (search) Log.d(this.getName(), "Search String: " + searchString);
         switch (entityName) {
             case "ProductSetup.CustomerDisplay":
                 final RealmResults<CustomerDisplay> customerDisplay = search?realm.where(CustomerDisplay.class)
@@ -787,7 +816,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .limit(limit)
                         .findAll():realm.where(CustomerDisplay.class).limit(limit).findAll();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
-                Log.i(this.getName(), "Find All " + entityName);
+                Log.d(this.getName(), "Find All " + entityName);
                 break;
             case "Inventory.SKU":
                 final RealmResults<SKU> sku = search?realm.where(SKU.class)
@@ -799,7 +828,23 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .limit(limit)
                         .findAll():realm.where(SKU.class).limit(limit).findAll();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
-                Log.i(this.getName(), "Find All  " + entityName);
+                Log.d(this.getName(), "Find All  " + entityName);
+                break;
+            case "POS.POS_Transaction":
+                final RealmResults<POS_Transaction> pos_transaction = search?realm.where(POS_Transaction.class)
+                        .contains("TrxStatus", searchString, Case.INSENSITIVE)
+                        .limit(limit)
+                        .findAll():realm.where(POS_Transaction.class).limit(limit).findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
+                Log.d(this.getName(), "Find All " + entityName);
+                break;
+            case "POS.POS_LineItem":
+                final RealmResults<POS_LineItem> pos_lineitem = search?realm.where(POS_LineItem.class)
+                        .contains("Status", searchString, Case.INSENSITIVE)
+                        .limit(limit)
+                        .findAll():realm.where(POS_LineItem.class).limit(limit).findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
+                Log.d(this.getName(), "Find All " + entityName);
                 break;
         }
         promise.resolve(true);
@@ -823,27 +868,109 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case "ProductSetup.CustomerDisplay":
                 realm.beginTransaction();
                 realm.delete(CustomerDisplay.class);
-                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
                 realm.commitTransaction();
                 break;
             case "Inventory.SKU":
                 realm.beginTransaction();
                 realm.delete(SKU.class);
-                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
                 realm.commitTransaction();
                 break;
             case "LOUAPI.LOUAPIJWT":
+                realm.beginTransaction();
                 realm.delete(LOUAPIJWT.class);
-                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
                 break;
             case "TSYS.TSYSMerchant":
+                realm.beginTransaction();
                 realm.delete(TSYSMerchant.class);
-                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
                 break;
             case "AdminConsole.EvosusCompany":
                 realm.beginTransaction();
                 realm.delete(EvosusCompany.class);
-                Log.i(this.getName(), "Deleted realm entity " + entityName);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_Transaction":
+                realm.beginTransaction();
+                realm.delete(POS_Transaction.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_LineItem":
+                realm.beginTransaction();
+                realm.delete(POS_LineItem.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+        }
+
+        // This is important
+        realm.close();
+
+        promise.resolve(true);
+    }
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void deleteRealmObject(String entityName, String objectID, Promise promise) {
+        Realm realm = getRealmConfiguration();
+
+        if (realm == null)
+            promise.resolve(false);
+
+        switch (entityName) {
+            case "ProductSetup.CustomerDisplay":
+                realm.beginTransaction();
+                realm.delete(CustomerDisplay.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "Inventory.SKU":
+                realm.beginTransaction();
+                realm.delete(SKU.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "LOUAPI.LOUAPIJWT":
+                realm.beginTransaction();
+                realm.delete(LOUAPIJWT.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "TSYS.TSYSMerchant":
+                realm.beginTransaction();
+                realm.delete(TSYSMerchant.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "AdminConsole.EvosusCompany":
+                realm.beginTransaction();
+                realm.delete(EvosusCompany.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_Transaction":
+                realm.beginTransaction();
+                RealmResults<POS_Transaction> transactionsToDelete = realm.where(POS_Transaction.class).equalTo("ID_", objectID).findAll();
+                Log.d(this.getName(), "objectToDelete: " + transactionsToDelete.asJSON());
+                transactionsToDelete.deleteAllFromRealm();
+                Log.d(this.getName(), "Deleted realm object " + entityName);
+                realm.commitTransaction();
+                break;
+            case "POS.POS_LineItem":
+                realm.beginTransaction();
+                RealmResults<POS_LineItem> lineItemsToDelete = realm.where(POS_LineItem.class).equalTo("ID_", objectID).findAll();
+                Log.d(this.getName(), "objectToDelete: " + lineItemsToDelete.asJSON());
+                lineItemsToDelete.deleteAllFromRealm();
+                Log.d(this.getName(), "Deleted realm object " + entityName);
                 realm.commitTransaction();
                 break;
         }
@@ -862,7 +989,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         Realm.deleteRealm(Realm.getDefaultConfiguration());
 
-        Log.i(this.getName(), "DeleteRealm");
+        Log.d(this.getName(), "DeleteRealm");
         promise.resolve(true);
     }
 
@@ -873,24 +1000,171 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void countEntity(String entityName, Promise promise) {
         Realm realm = getRealmConfiguration();
-        Log.i(this.getName(), "Counting " + entityName);
+        Log.d(this.getName(), "Counting " + entityName);
         switch (entityName) {
             case "ProductSetup.CustomerDisplay":
                 final long CustomerDisplays = realm.where(CustomerDisplay.class).count();
-//                Integer i = new Integer(CustomerDisplays);
                 promise.resolve((int)CustomerDisplays);
-                Log.i(this.getName(), "Counted " + CustomerDisplays + ' ' +  entityName);
+                Log.d(this.getName(), "Counted " + CustomerDisplays + ' ' +  entityName);
                 break;
             case "Inventory.SKU":
                 final long SKUs = realm.where(SKU.class).count();
                 promise.resolve((int)SKUs);
-                Log.i(this.getName(), "Counted " + SKUs + ' ' +  entityName);
+                Log.d(this.getName(), "Counted " + SKUs + ' ' +  entityName);
                 break;
             case "AdminConsole.EvosusCompany":
                 final long EvosusCompanies = realm.where(EvosusCompany.class).count();
                 promise.resolve((int)EvosusCompanies);
-                Log.i(this.getName(), "Counted " + EvosusCompanies + ' ' +  entityName);
+                Log.d(this.getName(), "Counted " + EvosusCompanies + ' ' +  entityName);
                 break;
+            case "POS.POS_Transaction":
+                final long POS_Transactions = realm.where(POS_Transaction.class).count();
+                promise.resolve((int)POS_Transactions);
+                Log.d(this.getName(), "Counted " + POS_Transactions + ' ' +  entityName);
+                break;
+            case "POS.POS_LineItem":
+                final long POS_LineItems = realm.where(POS_LineItem.class).count();
+                promise.resolve((int)POS_LineItems);
+                Log.d(this.getName(), "Counted " + POS_LineItems + ' ' +  entityName);
+                break;
+        }
+    }
+
+    /**
+     * @param entityName
+     * @param promise
+     */
+    @ReactMethod
+    public void countEntitySearch(String entityName, String searchString, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        Log.i(this.getName(), "Counting " + entityName);
+        switch (entityName) {
+            case "POS.POS_Transaction":
+                final long POS_Transactions = realm.where(POS_Transaction.class)
+                        .contains("TrxStatus", searchString, Case.INSENSITIVE).count();
+                promise.resolve((int)POS_Transactions);
+                Log.d(this.getName(), "Counted " + POS_Transactions + ' ' +  entityName + " with TrxStatus of " + searchString);
+                break;
+            case "POS.POS_LineItem":
+                final long POS_LineItems = realm.where(POS_LineItem.class)
+                        .contains("Status", searchString, Case.INSENSITIVE).count();
+                promise.resolve((int)POS_LineItems);
+                Log.d(this.getName(), "Counted " + POS_LineItems + ' ' +  entityName + " with Status of " + searchString);
+                break;
+        }
+    }
+
+    /**
+     * @param daysString
+     * @param promise
+     */
+    @ReactMethod
+    public void deleteExpiredPOSTransactions(String daysString, Promise promise) {
+        Integer days = Integer.parseInt(daysString);
+//        Log.e(this.getName(), "days: " + days);
+        Realm realm = getRealmConfiguration();
+//        Date d = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -days);
+        Date d = cal.getTime();
+        Log.d(this.getName(), "Date d: "+ d.toString());
+        RealmResults<POS_Transaction> objectsToDelete = realm.where(POS_Transaction.class)
+                .equalTo("TrxStatus", "Hold")
+                .lessThan("HoldDate", d)
+                .findAll();
+        deletePOSTransactions(objectsToDelete);
+        promise.resolve(true);
+    }
+
+    /**
+     * @param customerVanityID
+     * @param promise
+     */
+    @ReactMethod
+    public void getCustomerHistoryLineItems(String customerVanityID, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        RealmResults<POS_LineItem> customerHistoryLineItems = realm.where(POS_LineItem.class).equalTo("CustomerVanityID", customerVanityID).findAll();
+        promise.resolve(customerHistoryLineItems);
+    }
+    
+    private void deletePOSTransactions(RealmResults<POS_Transaction> pos_transactions) {
+        Realm realm = getRealmConfiguration();
+        realm.beginTransaction();
+        for (POS_Transaction POS_Transaction: pos_transactions) {
+            RealmResults<POS_LineItem> lineItems = realm.where(POS_LineItem.class).equalTo("POS_TransactionID", POS_Transaction.getID_()).findAll();
+            Log.d(this.getName(), lineItems.size() + " POS_LineItems found for POS_Transaction " + POS_Transaction.getID_());
+            lineItems.deleteAllFromRealm();
+        }
+        Log.e(this.getName(), " POS_Transactions found to delete: " + pos_transactions.size());
+        pos_transactions.deleteAllFromRealm();
+        realm.commitTransaction();
+    }
+
+    /**
+     * @param promise
+     */
+    @ReactMethod
+    private void getPOSTransactionsToSync(Promise promise) {
+        Realm realm = getRealmConfiguration();
+        RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
+                .equalTo("TrxStatus", "Complete")
+                .findAll();
+        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
+    }
+
+    private RealmResults<POS_Transaction> getSessionTransactions(Realm realm, String sessionID, String status) {
+        RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
+                .equalTo("POSStationSessionID", sessionID)
+                .equalTo("TrxStatus", status)
+                .findAll();
+        return pos_transactions;
+    }
+
+    /**
+     * @param sessionID
+     * @param status
+     * @param promise
+     */
+    @ReactMethod
+    public void findSessionTransactions(String sessionID, String status, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        RealmResults<POS_Transaction> pos_transactions = getSessionTransactions(realm, sessionID, status);
+        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
+    }
+
+    /**
+     * @param sessionID
+     * @param status
+     * @param promise
+     */
+    @ReactMethod
+    public void deleteSessionTransactions(String sessionID, String status, Promise promise) {
+        Realm realm = getRealmConfiguration();
+        RealmResults<POS_Transaction> pos_transactions = getSessionTransactions(realm, sessionID, status);
+        realm.beginTransaction();
+        pos_transactions.deleteAllFromRealm();
+        realm.commitTransaction();
+        promise.resolve(true);
+    }
+    
+    /**
+     * @param entityID
+     * @param promise
+     */
+    @ReactMethod
+    public void findPOSLineItemsByPOSTransactionID(String entityID, Promise promise) {
+
+        Realm realm = getRealmConfiguration();
+
+        if (realm == null)
+            promise.resolve(false);
+        Log.d(this.getName(), "POS_TransactionID: " + entityID);
+        final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class).equalTo("POS_TransactionID", entityID).findAll();
+        if (POS_LineItems != null) {
+            promise.resolve(new Gson().toJson(realm.copyFromRealm(POS_LineItems)));
+            Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem");
+        } else {
+            promise.reject("POS_LineItems not found.");
         }
     }
 
