@@ -50,6 +50,7 @@ import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
 import com.pax.poslink.ReportRequest;
 import com.pax.poslink.ReportResponse;
+import com.pax.poslink.connection.INormalConnection;
 import com.pax.poslink.constant.EDCType;
 import com.pax.poslink.peripheries.POSLinkCashDrawer;
 import com.pax.poslink.peripheries.POSLinkPrinter;
@@ -81,10 +82,14 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import io.realm.Case;
+import io.realm.DynamicRealm;
+import io.realm.FieldAttribute;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmList;
+import io.realm.RealmMigration;
 import io.realm.RealmResults;
+import io.realm.RealmSchema;
 
 @ReactModule(name = EvosusLouPosModule.NAME)
 public class EvosusLouPosModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, ServiceConnection {
@@ -626,7 +631,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(42)
+                .schemaVersion(43)
+                .migration(new MyMigration())
                 .build();
         // Use the config
         //Realm realm = Realm.getInstance(config);
@@ -1165,6 +1171,112 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem");
         } else {
             promise.reject("POS_LineItems not found.");
+        }
+    }
+
+    // Example migration adding a new class
+    public class MyMigration implements RealmMigration {
+        @Override
+        public void migrate(DynamicRealm realm, long oldVersion, long newVersion) {
+
+            // DynamicRealm exposes an editable schema
+            RealmSchema schema = realm.getSchema();
+
+            // Migrate to version 1: Add a new class.
+            // Example:
+            // public Person extends RealmObject {
+            //     private String name;
+            //     private int age;
+            //     // getters and setters left out for brevity
+            // }
+            if (oldVersion == 42) {
+                schema.create("POS_Transaction")
+                        .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("Subtotal", Double.class)
+                        .addField("SubtotalDisplay", String.class)
+                        .addField("Total", Double.class)
+                        .addField("TotalDisplay", String.class)
+                        .addField("ReturnMode", String.class)
+                        .addField("SKU_Search", String.class)
+                        .addField("ReceiptCompanyName", String.class)
+                        .addField("ReceiptCustomMessage", String.class)
+                        .addField("TrxStatus", String.class)
+                        .addField("PaymentMethod", String.class)
+                        .addField("Tax", Double.class)
+                        .addField("TaxDisplay", String.class)
+                        .addField("Tendered", Double.class)
+                        .addField("TenderedDisplay", String.class)
+                        .addField("ChangeDue", Double.class)
+                        .addField("ChangeDueDisplay", String.class)
+                        .addField("PrintReceipt", Boolean.class)
+                        .addField("EmailReceipt", Boolean.class)
+                        .addField("PaymentAttempts", Integer.class)
+                        .addField("DiscountRate", Double.class)
+                        .addField("DiscountType", String.class)
+                        .addField("SubtotalAfterDiscount", Double.class)
+                        .addField("SubtotalAfterDiscount_Display", String.class)
+                        .addField("SubtotalBeforeDiscount_Display", String.class)
+                        .addField("Discount_Total", Double.class)
+                        .addField("SubtotalBeforeDiscount", Double.class)
+                        .addField("TaxExemptDocumentation", String.class)
+                        .addField("Invoiced", Boolean.class)
+                        .addField("OrderType", String.class)
+                        .addField("Request", String.class)
+                        .addField("NumberOfLineItems", Integer.class)
+                        .addField("ClerkName", String.class)
+                        .addField("InvoiceID", String.class)
+                        .addField("IsProcessed", Boolean.class)
+                        .addField("ActiveListenersCount", Integer.class)
+                        .addField("CardType", String.class)
+                        .addField("CustomerName", String.class)
+                        .addField("CustomerVanityID", String.class)
+                        .addField("TaxableTotal", Double.class)
+                        .addField("TaxCodeID", Integer.class)
+                        .addField("HoldDate", Date.class)
+                        .addField("HasError", Boolean.class)
+                        .addField("Synced", Boolean.class)
+                        .addField("POSStationSessionID", String.class)
+                        .addField("DepartmentID", Integer.class)
+                        .addField("POSStationID", Integer.class);
+
+                schema.create("POS_LineItem")
+                        .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("POS_TransactionID", String.class)
+                        .addField("LineNumber", Integer.class)
+                        .addField("MySKU", String.class)
+                        .addField("Description", String.class)
+                        .addField("DescriptionFull", String.class)
+                        .addField("SKUType", String.class)
+                        .addField("UnitPrice", Double.class)
+                        .addField("UnitPriceDisplay", String.class)
+                        .addField("Quantity", Double.class)
+                        .addField("Discount", Double.class)
+                        .addField("DiscountDisplay", String.class)
+                        .addField("Subtotal", Double.class)
+                        .addField("SubtotalDisplay", String.class)
+                        .addField("isComment", Boolean.class)
+                        .addField("Comment", String.class)
+                        .addField("ServiceDate", Date.class)
+                        .addField("Status", String.class)
+                        .addField("CustomerVanityID", String.class)
+                        .addField("DateCompleted", Date.class)
+                        .addField("SKUID", String.class)
+                        .addField("SerialNumber", String.class)
+                        .addField("Taxable", Boolean.class);
+                oldVersion++;
+            }
+        }
+        @Override
+        public int hashCode() {
+            return MyMigration.class.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (object == null) {
+                return false;
+            }
+            return object instanceof MyMigration;
         }
     }
 
