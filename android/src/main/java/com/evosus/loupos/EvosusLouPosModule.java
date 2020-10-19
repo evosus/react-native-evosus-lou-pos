@@ -26,6 +26,7 @@ import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
 import com.evosus.loupos.models.POS_LineItem;
 import com.evosus.loupos.models.SKU;
+import com.evosus.loupos.models.SKUKitLine;
 import com.evosus.loupos.models.TSYSMerchant;
 import com.evosus.loupos.models.POS_Transaction;
 import com.facebook.react.bridge.ActivityEventListener;
@@ -631,7 +632,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(43)
+                .schemaVersion(44)
                 .migration(new MyMigration())
                 .build();
         // Use the config
@@ -708,6 +709,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case "POS.POS_LineItem":
                 realm.beginTransaction();
                 realm.createOrUpdateAllFromJson(POS_LineItem.class, jsonString);
+                realm.commitTransaction();
+                break;
+            case "Inventory.SKUKitLine":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(SKUKitLine.class, jsonString);
                 realm.commitTransaction();
                 break;
         }
@@ -792,6 +798,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     promise.reject("POS_LineItem not found.");
                 }
                 break;
+            case "Inventory.SKUKitLine":
+                final SKUKitLine skuKitLine = realm.where(SKUKitLine.class).equalTo("_ID", entityID).findFirst();
+                if (skuKitLine != null) {
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(skuKitLine)));
+                    Log.d(this.getName(), "Lookup on SKUKitLine _ID for " + entityName);
+                } else {
+                    promise.reject("SKUKitLine not found.");
+                }
+                break;
         }
 
         // This is important
@@ -852,6 +867,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
                 Log.d(this.getName(), "Find All " + entityName);
                 break;
+            case "Inventory.SKUKitLine":
+                final RealmResults<SKUKitLine> skuKitLines = search?realm.where(SKUKitLine.class)
+                        .contains("KitSKUID", searchString, Case.INSENSITIVE)
+                        .limit(limit)
+                        .findAll():realm.where(SKUKitLine.class).limit(limit).findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(skuKitLines)));
+                Log.d(this.getName(), "Find All " + entityName);
+                break;
         }
         promise.resolve(true);
 
@@ -910,6 +933,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             case "POS.POS_LineItem":
                 realm.beginTransaction();
                 realm.delete(POS_LineItem.class);
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
+            case "Inventory.SKUKitLine":
+                realm.beginTransaction();
+                realm.delete(SKUKitLine.class);
                 Log.d(this.getName(), "Deleted realm entity " + entityName);
                 realm.commitTransaction();
                 break;
@@ -979,6 +1008,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 Log.d(this.getName(), "Deleted realm object " + entityName);
                 realm.commitTransaction();
                 break;
+            case "Inventory.SKUKitLine":
+                realm.beginTransaction();
+                RealmResults<SKUKitLine> skuKitLinesToDelete = realm.where(SKUKitLine.class).equalTo("_ID", objectID).findAll();
+                Log.d(this.getName(), "objectToDelete: " + skuKitLinesToDelete.asJSON());
+                skuKitLinesToDelete.deleteAllFromRealm();
+                Log.d(this.getName(), "Deleted realm object " + entityName);
+                realm.commitTransaction();
+                break;
         }
 
         // This is important
@@ -1032,6 +1069,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 final long POS_LineItems = realm.where(POS_LineItem.class).count();
                 promise.resolve((int)POS_LineItems);
                 Log.d(this.getName(), "Counted " + POS_LineItems + ' ' +  entityName);
+                break;
+            case "Inventory.SKUKitLine":
+                final long SKUKitLines = realm.where(SKUKitLine.class).count();
+                promise.resolve((int)SKUKitLines);
+                Log.d(this.getName(), "Counted " + SKUKitLines + ' ' +  entityName);
                 break;
         }
     }
@@ -1092,7 +1134,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         RealmResults<POS_LineItem> customerHistoryLineItems = realm.where(POS_LineItem.class).equalTo("CustomerVanityID", customerVanityID).findAll();
         promise.resolve(customerHistoryLineItems);
     }
-    
+
     private void deletePOSTransactions(RealmResults<POS_Transaction> pos_transactions) {
         Realm realm = getRealmConfiguration();
         realm.beginTransaction();
@@ -1152,7 +1194,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         realm.commitTransaction();
         promise.resolve(true);
     }
-    
+
     /**
      * @param entityID
      * @param promise
@@ -1189,7 +1231,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             //     private int age;
             //     // getters and setters left out for brevity
             // }
-            if (oldVersion == 42) {
+            if (oldVersion < 43) {
                 schema.create("POS_Transaction")
                         .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
                         .addField("Subtotal", Double.class)
@@ -1263,6 +1305,30 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("SKUID", String.class)
                         .addField("SerialNumber", String.class)
                         .addField("Taxable", Boolean.class);
+                oldVersion++;
+            }
+            if (oldVersion < 44) {
+                schema.create("SKUKitLine")
+                        .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("MySKU", String.class)
+                        .addField("Description", String.class)
+                        .addField("SKUType", String.class)
+                        .addField("Quantity", Double.class)
+                        .addField("KitPriceLineEnum", String.class)
+                        .addField("UnitMeasureName", String.class)
+                        .addField("ConversionFactor", Double.class)
+                        .addField("PriceCalculated", Double.class)
+                        .addField("SubtotalCalculated", Double.class)
+                        .addField("Order", Integer.class)
+                        .addField("isUpdatedSubtotal", Boolean.class)
+                        .addField("RetailPrice", Double.class)
+                        .addField("RetailMinusPercent", Double.class)
+                        .addField("FixedPrice", Double.class)
+                        .addField("isRetailMinusPercent", Boolean.class)
+                        .addField("isFixedPrice", Boolean.class)
+                        .addField("isNoCharge", Boolean.class)
+                        .addField("SKUID", String.class)
+                        .addField("KitSKUID", String.class);
                 oldVersion++;
             }
         }
