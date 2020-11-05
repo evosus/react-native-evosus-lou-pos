@@ -23,6 +23,7 @@ public class SKU extends RealmObject {
      private String DisplayCost;
      private Boolean Active;
      private Boolean Taxable;
+     private String EvosusCompanySN;
 
      public String getSKUType() {
           return SKUType;
@@ -150,5 +151,13 @@ public class SKU extends RealmObject {
 
      public void setTaxable(Boolean taxable) {
           Taxable = taxable;
+     }
+
+     public String getEvosusCompanySN() {
+          return EvosusCompanySN;
+     }
+     
+     public void setEvosusCompanySN(String EvosusCompanySN) {
+          this.EvosusCompanySN = EvosusCompanySN;
      }
 }

@@ -27,6 +27,7 @@ public class SKUKitLine extends RealmObject {
     private Boolean isNoCharge;
     private String SKUID;
     private String KitSKUID;
+    private String EvosusCompanySN;
 
     public String get_ID() {
         return ID_;
@@ -186,5 +187,13 @@ public class SKUKitLine extends RealmObject {
 
     public void setKitSKUID(String KitSKUID) {
         this.KitSKUID = KitSKUID;
+    }
+
+    public String getEvosusCompanySN() {
+        return EvosusCompanySN;
+    }
+    
+    public void setEvosusCompanySN(String EvosusCompanySN) {
+        this.EvosusCompanySN = EvosusCompanySN;
     }
 }

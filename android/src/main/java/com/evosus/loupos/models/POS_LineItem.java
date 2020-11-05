@@ -32,6 +32,7 @@ public class POS_LineItem extends RealmObject {
     private String SKUID;
     private String SerialNumber;
     private Boolean Taxable;
+    private String EvosusCompanySN;
 
     public String getID_() {
         return ID_;
@@ -216,5 +217,13 @@ public class POS_LineItem extends RealmObject {
 
     public void setTaxable(Boolean Taxable) {
         this.Taxable =  Taxable;
+    }
+
+    public String getEvosusCompanySN() {
+        return EvosusCompanySN;
+    }
+    
+    public void setEvosusCompanySN(String EvosusCompanySN) {
+        this.EvosusCompanySN = EvosusCompanySN;
     }
 }

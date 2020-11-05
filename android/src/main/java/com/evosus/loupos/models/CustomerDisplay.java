@@ -13,6 +13,7 @@ public class CustomerDisplay extends RealmObject {
      @PrimaryKey
      private String CustomerVanityID;
      private Boolean Active;
+     private String EvosusCompanySN;
 
      public String getDropdownSearchString() {
           return DropdownSearchString;
@@ -60,6 +61,14 @@ public class CustomerDisplay extends RealmObject {
 
      public void setActive(Boolean active) {
           Active = active;
+     }
+
+     public String getEvosusCompanySN() {
+          return EvosusCompanySN;
+     }
+     
+     public void setEvosusCompanySN(String EvosusCompanySN) {
+          this.EvosusCompanySN = EvosusCompanySN;
      }
 }
 
