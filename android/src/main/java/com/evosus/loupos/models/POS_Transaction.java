@@ -56,6 +56,7 @@ public class POS_Transaction extends RealmObject {
     private Integer DepartmentID;
     private Integer POSStationID;
     private String EvosusCompanySN;
+    private String DepartmentName;
 
     public String getID_() {
         return ID_;
@@ -439,5 +440,13 @@ public class POS_Transaction extends RealmObject {
     
     public void setEvosusCompanySN(String EvosusCompanySN) {
         this.EvosusCompanySN = EvosusCompanySN;
+    }
+
+    public String getDepartmentName() {
+        return DepartmentName;
+    }
+    
+    public void setDepartmentName(String DepartmentName) {
+        this.DepartmentName = DepartmentName;
     }
 }
