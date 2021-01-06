@@ -632,7 +632,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(46)
+                .schemaVersion(47)
                 .migration(new MyMigration())
                 .build();
         // Use the config
@@ -1444,6 +1444,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             if (oldVersion < 46) {
                 schema.get("POS_Transaction")
                     .addField("DepartmentName", String.class);
+                oldVersion++;
+            }
+            if (oldVersion < 47) {
+                schema.get("POS_Transaction")
+                    .addField("DateCompleted", Date.class);
                 oldVersion++;
             }
         }
