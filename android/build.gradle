@@ -63,7 +63,7 @@ final def
         markwon_version = '4.2.0'
 
 dependencies {
-    implementation files('libs/PAX_POSLinkAndroid_20200604.aar')
+    implementation files('libs/PAX_POSLinkAndroid_20220426.aar')
     implementation "com.facebook.react:react-native:${safeExtGet('reactnativeVersion', '+')}"
     implementation 'com.commonsware.cwac:presentation.x:0.6.1'
     implementation "io.noties.markwon:core:$markwon_version"
