@@ -27,6 +27,7 @@ import com.evosus.loupos.models.LOUAPIJWT;
 import com.evosus.loupos.models.POS_LineItem;
 import com.evosus.loupos.models.SKU;
 import com.evosus.loupos.models.SKUKitLine;
+import com.evosus.loupos.models.SessionInfo;
 import com.evosus.loupos.models.TSYSMerchant;
 import com.evosus.loupos.models.POS_Transaction;
 import com.facebook.react.bridge.ActivityEventListener;
@@ -72,6 +73,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -632,8 +634,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(46)
+                .schemaVersion(47)
                 .migration(new MyMigration())
+                .build();
+        // Use the config
+        //Realm realm = Realm.getInstance(config);
+        return  Realm.getInstance(config);
+    }
+
+    private static Realm getRealmConfigurationStatic() {
+        // The RealmConfiguration is created using the builder pattern.
+        // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
+        RealmConfiguration config = new RealmConfiguration.Builder()
+                .name("evosus.db")
+                .schemaVersion(47)
                 .build();
         // Use the config
         //Realm realm = Realm.getInstance(config);
@@ -666,7 +680,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void loadRealmFromJSON(String entityName, String jsonString, Promise promise) {
 
-        Log.e(this.getName(), entityName);
+        Log.d(this.getName(), entityName);
 
         if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
             jsonString = '[' + jsonString + ']';
@@ -716,6 +730,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 realm.createOrUpdateAllFromJson(SKUKitLine.class, jsonString);
                 realm.commitTransaction();
                 break;
+            case "POS.SessionInfo":
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(SessionInfo.class, jsonString);
+                realm.commitTransaction();
+                break;
         }
         // This is important
         realm.close();
@@ -750,7 +769,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 }
                 break;
             case "Inventory.SKU":
-                Log.e(this.getName(), "UseSKUID = " + UseSKUID);
+                Log.d(this.getName(), "UseSKUID = " + UseSKUID);
                 final SKU sku = UseSKUID?realm.where(SKU.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .equalTo("ReadableID", entityID)
@@ -1005,6 +1024,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 Log.d(this.getName(), "Deleted realm entity " + entityName);
                 realm.commitTransaction();
                 break;
+            case "POS.SessionInfo":
+                final RealmResults<SessionInfo> sessionInfos = realm.where(SessionInfo.class)
+                        .findAll();
+                realm.beginTransaction();
+                sessionInfos.deleteAllFromRealm();
+                Log.d(this.getName(), "Deleted realm entity " + entityName);
+                realm.commitTransaction();
+                break;
         }
 
         // This is important
@@ -1243,7 +1270,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             Log.d(this.getName(), lineItems.size() + " POS_LineItems found for POS_Transaction " + POS_Transaction.getID_());
             lineItems.deleteAllFromRealm();
         }
-        Log.e(this.getName(), " POS_Transactions found to delete: " + pos_transactions.size());
+        Log.d(this.getName(), " POS_Transactions found to delete: " + pos_transactions.size());
         pos_transactions.deleteAllFromRealm();
         realm.commitTransaction();
     }
@@ -1351,7 +1378,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    // Example migration adding a new class
     public class MyMigration implements RealmMigration {
         @Override
         public void migrate(DynamicRealm realm, long oldVersion, long newVersion) {
@@ -1473,6 +1499,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             if (oldVersion < 46) {
                 schema.get("POS_Transaction")
                         .addField("DepartmentName", String.class);
+                oldVersion++;
+            }
+            if (oldVersion < 47) {
+                schema.create("SessionInfo")
+                        .addField("Email", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("Username", String.class)
+                        .addField("CompanySerialNumber", String.class)
+                        .addField("CompanyName", String.class)
+                        .addField("PosStationName", String.class)
+                        .addField("PosStationId", String.class);
                 oldVersion++;
             }
         }
@@ -2256,4 +2292,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         return null;
     }
 
+    public static SessionInfo getSessionInfo() {
+        try {
+            Realm realm = getRealmConfigurationStatic();
+            return realm.where(SessionInfo.class).findFirst();
+        } catch (Error e) {
+            return null;
+        }
+    }
+
+    /**
+     * @param promise
+     */
+    @ReactMethod
+    public void getUuid(final Promise promise) {
+        promise.resolve(UUID.randomUUID().toString());
+    }
 }
