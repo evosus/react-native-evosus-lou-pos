@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.bugsnag.android.Bugsnag;
 import com.evosus.loupos.models.CustomerDisplay;
 import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
@@ -194,6 +195,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void startCustomerDisplay() {
+        Bugsnag.leaveBreadcrumb("startCustomerDisplay");
         if (Build.VERSION.SDK_INT >= 23) {
             if (!Settings.canDrawOverlays(getReactApplicationContext())) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getReactApplicationContext().getPackageName()));
@@ -215,6 +217,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void stopCustomerDisplay() {
+        Bugsnag.leaveBreadcrumb("stopCustomerDisplay");
         if (getCurrentActivity() != null)
             getCurrentActivity().stopService(new Intent(reactContext, CustomerDisplayService.class));
     }
@@ -224,7 +227,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void setCustomerDisplayTrxMD(String trxMarkdown) {
-
+        Bugsnag.leaveBreadcrumb("setCustomerDisplayTrxMD");
         // This is used to communicate with the CustomerDisplay Service
         customerDisplayService.setCustomerDisplayTrxMD(trxMarkdown);
     }
@@ -309,6 +312,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void openCashDrawer() {
+        Bugsnag.leaveBreadcrumb("openCashDrawer");
         final ProcessResult result = POSLinkCashDrawer.getInstance(getReactApplicationContext()).open();
         if (!result.getCode().equals(ProcessResult.CODE_OK)) {
             getCurrentActivity().runOnUiThread(new Runnable() {
@@ -326,6 +330,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void getLastTransaction(Promise promise)
     {
+        Bugsnag.leaveBreadcrumb("getLastTransaction");
         if (!validatePOSLink(promise)) return;
 
         ReportRequest reportRequest = new ReportRequest();
@@ -349,6 +354,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditSale");
 
         if (!validatePOSLink(promise)) return;
 
@@ -376,6 +382,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditAuth(String amount, String referenceNumber, String poNum, String extData, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditAuth");
 
         if (!validatePOSLink(promise)) return;
 
@@ -399,6 +406,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditSaleEBT(String amount, String referenceNumber, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditSaleEBT");
 
         if (!validatePOSLink(promise)) return;
 
@@ -421,6 +429,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditRefund(String amount, String referenceNumber, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditRefund");
 
         if (!validatePOSLink(promise)) return;
 
@@ -445,6 +454,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditVoid(String amount, String referenceNumber, String origRefNum, String origECRRefNum, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditVoid");
 
         if (!validatePOSLink(promise)) return;
 
@@ -472,6 +482,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void creditForceAuth(String amount, String referenceNumber, String authCode, String poNum, String taxAmt, String extData, Promise promise) {
+        Bugsnag.leaveBreadcrumb("creditForceAuth");
 
         if (!validatePOSLink(promise)) return;
 
@@ -502,6 +513,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
+        Bugsnag.leaveBreadcrumb("debitSale");
 
         if (!validatePOSLink(promise)) return;
 
@@ -529,6 +541,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void debitRefund(String amount, String referenceNumber, Promise promise) {
+        Bugsnag.leaveBreadcrumb("debitRefund");
 
         if (!validatePOSLink(promise)) return;
 
@@ -553,9 +566,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Promise promise) {
+        Bugsnag.leaveBreadcrumb("checkPOSLink");
+
         // Type - one of USB, TCP, AIDL
         // AIDL not implemented yet
-
         if (!bInited)
             initPOSLink();
 
@@ -613,6 +627,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private PosLink getPOSLink() {
+        Bugsnag.leaveBreadcrumb("getPOSLink");
+
         PosLink posLink1 = POSLinkCreator.createPoslink(getReactApplicationContext());
 
         String iniFile = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
@@ -623,6 +639,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private void initPOSLink() {
+        Bugsnag.leaveBreadcrumb("initPOSLink");
         bInited = true;
         AppThreadPool.getInstance();
         commSetting = setupSetting(getReactApplicationContext());
@@ -630,6 +647,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private Realm getRealmConfiguration() {
+        Bugsnag.leaveBreadcrumb("getRealmConfiguration");
         // The RealmConfiguration is created using the builder pattern.
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
@@ -643,6 +661,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private static Realm getRealmConfigurationStatic() {
+        Bugsnag.leaveBreadcrumb("getRealmConfigurationStatic");
         // The RealmConfiguration is created using the builder pattern.
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
@@ -659,6 +678,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void batchClose(Promise promise) {
+        Bugsnag.leaveBreadcrumb("batchClose");
 
         if (!validatePOSLink(promise)) return;
 
@@ -679,7 +699,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void loadRealmFromJSON(String entityName, String jsonString, Promise promise) {
-
+        Bugsnag.leaveBreadcrumb("loadRealmFromJSON");
         Log.d(this.getName(), entityName);
 
         if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
@@ -749,110 +769,116 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void findFirstRealmEntityByID(String entityName, String entityID, Boolean UseSKUID, String EvosusCompanySN, Promise promise) {
-
-        Realm realm = getRealmConfiguration();
-
-        if (realm == null)
-            promise.resolve(false);
-        Log.d(this.getName(), "findFirstRealmEntityByID " + entityName + ": " + entityID);
-        switch (entityName) {
-            case "ProductSetup.CustomerDisplay":
-                final CustomerDisplay customerDisplay = realm.where(CustomerDisplay.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("CustomerVanityID", entityID)
-                        .findFirst();
-                if (customerDisplay != null) {
-                    promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
-                    Log.d(this.getName(), "Lookup on CustomerVanityID for " + entityName);
-                } else {
-                    promise.reject("CustomerDisplay not found.");
-                }
-                break;
-            case "Inventory.SKU":
-                Log.d(this.getName(), "UseSKUID = " + UseSKUID);
-                final SKU sku = UseSKUID?realm.where(SKU.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ReadableID", entityID)
-                        .findFirst():
-                        realm.where(SKU.class)
-                                .equalTo("EvosusCompanySN", EvosusCompanySN)
-                                .equalTo("UPC", entityID)
-                                .or()
-                                .equalTo("MySKU", entityID)
-                                .findFirst();
-                if (sku != null) {
-                    promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
-                    Log.d(this.getName(), "Lookup on ReadableID for " + entityName);
-                } else {
-                    promise.reject("SKU not found.");
-                }
-                break;
-            case "LOUAPI.LOUAPIJWT":
-                final LOUAPIJWT louapijwt = realm.where(LOUAPIJWT.class).equalTo("Key", entityID).findFirst();
-                promise.resolve(new Gson().toJson(realm.copyFromRealm(louapijwt)));
-                Log.d(this.getName(), "Lookup on Key for " + entityName);
-                break;
-            case "TSYS.TSYSMerchant":
-                final TSYSMerchant tsysMerchant = realm.where(TSYSMerchant.class).equalTo("_ID", entityID).findFirst();
-                promise.resolve(new Gson().toJson(realm.copyFromRealm(tsysMerchant)));
-                Log.d(this.getName(), "Lookup on _ID for " + entityName);
-                break;
-            case "AdminConsole.EvosusCompany":
-                try {
-                    final EvosusCompany evosusCompany = realm.where(EvosusCompany.class).equalTo("SerialNumber", entityID).findFirst();
-                    if (evosusCompany != null) {
-                        promise.resolve(new Gson().toJson(realm.copyFromRealm(evosusCompany)));
-                        Log.d(this.getName(), "Lookup on SerialNumber for " + entityName);
-                    } else {
-                        promise.resolve("");
-                    }
-                }
-                catch (Error e) {
-                    Log.d(this.getName(), e.getMessage());
-                }
-                break;
-            case "POS.POS_Transaction":
-                final POS_Transaction pos_transaction = realm.where(POS_Transaction.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", entityID)
-                        .findFirst();
-                if (pos_transaction != null) {
-                    promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
-                    Log.d(this.getName(), "Lookup on POS_Transaction _ID for " + entityName);
-                } else {
-                    promise.reject("POS_Transaction not found.");
-                }
-                break;
-            case "POS.POS_LineItem":
-                final POS_LineItem pos_lineitem = realm.where(POS_LineItem.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", entityID)
-                        .findFirst();
-                if (pos_lineitem != null) {
-                    promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
-                    Log.d(this.getName(), "Lookup on POS_LineItem _ID for " + entityName);
-                } else {
-                    promise.reject("POS_LineItem not found.");
-                }
-                break;
-            case "Inventory.SKUKitLine":
-                final SKUKitLine skuKitLine = realm.where(SKUKitLine.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", entityID)
-                        .findFirst();
-                if (skuKitLine != null) {
-                    promise.resolve(new Gson().toJson(realm.copyFromRealm(skuKitLine)));
-                    Log.d(this.getName(), "Lookup on SKUKitLine ID_ for " + entityName);
-                } else {
-                    promise.reject("SKUKitLine not found.");
-                }
-                break;
+        Bugsnag.leaveBreadcrumb("findFirstRealmEntityByID");
+        Realm realm = null;
+        try {
+            realm = getRealmConfiguration();
+        } catch (Error | RuntimeException e) {
+            promise.reject(e);
         }
 
-        // This is important
-        realm.close();
+        if (realm == null) {
+            promise.resolve(false);
+        } else {
+            Log.d(this.getName(), "findFirstRealmEntityByID " + entityName + ": " + entityID);
+            switch (entityName) {
+                case "ProductSetup.CustomerDisplay":
+                    final CustomerDisplay customerDisplay = realm.where(CustomerDisplay.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("CustomerVanityID", entityID)
+                            .findFirst();
+                    if (customerDisplay != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(customerDisplay)));
+                        Log.d(this.getName(), "Lookup on CustomerVanityID for " + entityName);
+                    } else {
+                        promise.reject("CustomerDisplay not found.");
+                    }
+                    break;
+                case "Inventory.SKU":
+                    Log.d(this.getName(), "UseSKUID = " + UseSKUID);
+                    final SKU sku = UseSKUID ? realm.where(SKU.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ReadableID", entityID)
+                            .findFirst() :
+                            realm.where(SKU.class)
+                                    .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                    .equalTo("UPC", entityID)
+                                    .or()
+                                    .equalTo("MySKU", entityID)
+                                    .findFirst();
+                    if (sku != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
+                        Log.d(this.getName(), "Lookup on ReadableID for " + entityName);
+                    } else {
+                        promise.reject("SKU not found.");
+                    }
+                    break;
+                case "LOUAPI.LOUAPIJWT":
+                    final LOUAPIJWT louapijwt = realm.where(LOUAPIJWT.class).equalTo("Key", entityID).findFirst();
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(louapijwt)));
+                    Log.d(this.getName(), "Lookup on Key for " + entityName);
+                    break;
+                case "TSYS.TSYSMerchant":
+                    final TSYSMerchant tsysMerchant = realm.where(TSYSMerchant.class).equalTo("_ID", entityID).findFirst();
+                    promise.resolve(new Gson().toJson(realm.copyFromRealm(tsysMerchant)));
+                    Log.d(this.getName(), "Lookup on _ID for " + entityName);
+                    break;
+                case "AdminConsole.EvosusCompany":
+                    try {
+                        final EvosusCompany evosusCompany = realm.where(EvosusCompany.class).equalTo("SerialNumber", entityID).findFirst();
+                        if (evosusCompany != null) {
+                            promise.resolve(new Gson().toJson(realm.copyFromRealm(evosusCompany)));
+                            Log.d(this.getName(), "Lookup on SerialNumber for " + entityName);
+                        } else {
+                            promise.resolve("");
+                        }
+                    } catch (Error e) {
+                        Log.e(this.getName(), e.getMessage());
+                    }
+                    break;
+                case "POS.POS_Transaction":
+                    final POS_Transaction pos_transaction = realm.where(POS_Transaction.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", entityID)
+                            .findFirst();
+                    if (pos_transaction != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
+                        Log.d(this.getName(), "Lookup on POS_Transaction _ID for " + entityName);
+                    } else {
+                        promise.reject("POS_Transaction not found.");
+                    }
+                    break;
+                case "POS.POS_LineItem":
+                    final POS_LineItem pos_lineitem = realm.where(POS_LineItem.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", entityID)
+                            .findFirst();
+                    if (pos_lineitem != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
+                        Log.d(this.getName(), "Lookup on POS_LineItem _ID for " + entityName);
+                    } else {
+                        promise.reject("POS_LineItem not found.");
+                    }
+                    break;
+                case "Inventory.SKUKitLine":
+                    final SKUKitLine skuKitLine = realm.where(SKUKitLine.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", entityID)
+                            .findFirst();
+                    if (skuKitLine != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(skuKitLine)));
+                        Log.d(this.getName(), "Lookup on SKUKitLine ID_ for " + entityName);
+                    } else {
+                        promise.reject("SKUKitLine not found.");
+                    }
+                    break;
+            }
 
-        promise.resolve(true);
+            // This is important
+            realm.close();
+
+            promise.resolve(true);
+        }
     }
 
 
@@ -862,6 +888,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void findAllEntity(String entityName, String searchString, Integer limit, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("findAllEntity");
+
         Realm realm = getRealmConfiguration();
         Boolean search = (searchString != null && !searchString.isEmpty());
         if (realm == null)
@@ -953,6 +981,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteRealmEntity(String entityName, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("deleteRealmEntity");
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1046,6 +1075,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteRealmObject(String entityName, String objectID, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("deleteRealmObject");
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1136,6 +1166,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteRealmDB(Promise promise) {
+        Bugsnag.leaveBreadcrumb("deleteRealmDB");
 
         Realm.deleteRealm(Realm.getDefaultConfiguration());
 
@@ -1149,6 +1180,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void countEntity(String entityName, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("countEntity");
         Realm realm = getRealmConfiguration();
         Log.d(this.getName(), "Counting " + entityName);
         switch (entityName) {
@@ -1201,6 +1233,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void countEntitySearch(String entityName, String searchString, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("countEntitySearch");
         Realm realm = getRealmConfiguration();
         Log.i(this.getName(), "Counting " + entityName);
         switch (entityName) {
@@ -1228,6 +1261,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteExpiredPOSTransactions(String daysString, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("deleteExpiredPOSTransactions");
         Integer days = Integer.parseInt(daysString);
 //        Log.e(this.getName(), "days: " + days);
         Realm realm = getRealmConfiguration();
@@ -1251,6 +1285,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void getPOSLineItemsFromCustomerVanityID(String customerVanityID, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("getPOSLineItemsFromCustomerVanityID");
         Realm realm = getRealmConfiguration();
         RealmResults<POS_LineItem> customerHistoryLineItems = realm.where(POS_LineItem.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
@@ -1260,6 +1295,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private void deletePOSTransactions(RealmResults<POS_Transaction> pos_transactions, String EvosusCompanySN) {
+        Bugsnag.leaveBreadcrumb("deletePOSTransactions");
         Realm realm = getRealmConfiguration();
         realm.beginTransaction();
         for (POS_Transaction POS_Transaction: pos_transactions) {
@@ -1280,6 +1316,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     private void getPOSTransactionsToSync(String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("getPOSTransactionsToSync");
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
@@ -1289,6 +1326,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private RealmResults<POS_Transaction> findSessionTransactions(Realm realm, String sessionID, String status, String EvosusCompanySN) {
+        Bugsnag.leaveBreadcrumb("findSessionTransactions");
         RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("POSStationSessionID", sessionID)
@@ -1304,6 +1342,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void getSessionTransactions(String sessionID, String status, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("getSessionTransactions");
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
@@ -1316,6 +1355,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteSessionTransactions(String sessionID, String status, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("deleteSessionTransactions");
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         realm.beginTransaction();
@@ -1331,6 +1371,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deletePOSLineItemsFromPOSTransaction(String posTransactionID, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("deletePOSLineItemsFromPOSTransaction");
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1360,6 +1401,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void getPOSLineItemsByPOSTransactionID(String entityID, String EvosusCompanySN, Promise promise) {
+        Bugsnag.leaveBreadcrumb("getPOSLineItemsByPOSTransactionID");
 
         Realm realm = getRealmConfiguration();
 
@@ -1574,7 +1616,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void setTransactionKey(String userName, String userPassword, String mid, String deviceID, Promise promise) {
-
+        Bugsnag.leaveBreadcrumb("setTransactionKey");
         if (!validatePOSLink(promise)) return;
 
         ManageRequest manageRequest = new ManageRequest();
@@ -1600,6 +1642,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void printReceipt(final String receiptText, final Promise promise) {
+        Bugsnag.leaveBreadcrumb("printReceipt");
 
         POSLinkPrinter posLinkPrinter = POSLinkPrinter.getInstance(getReactApplicationContext());
 
@@ -1649,6 +1692,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private int l_timeToAllowCancel;
 
         public OneShotPaymentTask2(Promise promise, PaymentRequest paymentRequest, String transType) {
+            Bugsnag.leaveBreadcrumb("OneShotPaymentTask2");
 
             l_paymentRequest = paymentRequest;
             l_promise= promise;
@@ -1679,6 +1723,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
+            Bugsnag.leaveBreadcrumb("onPreExecute");
+
             if (dialog != null) {
                 dialog.setMessage("Processing...(cancel allowed in 5 seconds)");
                 dialog.show();
@@ -1707,6 +1753,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
+            Bugsnag.leaveBreadcrumb("doInBackground");
 
             l_posLink.PaymentRequest = l_paymentRequest;
 
@@ -1726,6 +1773,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
+            Bugsnag.leaveBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1742,6 +1790,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private ProcessTransResult l_ptr;
 
         public OneShotBatchTask(Promise promise, BatchRequest request, String transType) {
+            Bugsnag.leaveBreadcrumb("OneShotBatchTask");
 
             l_batchRequest = request;
             l_promise= promise;
@@ -1764,6 +1813,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
+            Bugsnag.leaveBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1772,6 +1822,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
+            Bugsnag.leaveBreadcrumb("doInBackground");
 
             l_posLink.BatchRequest = l_batchRequest;
 
@@ -1791,6 +1842,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
+            Bugsnag.leaveBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1807,6 +1859,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private ProcessTransResult l_ptr;
 
         public OneShotManageTask(Promise promise, ManageRequest request, String transType) {
+            Bugsnag.leaveBreadcrumb("OneShotManageTask");
 
             l_manageRequest = request;
             l_promise= promise;
@@ -1829,6 +1882,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
+            Bugsnag.leaveBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1837,6 +1891,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
+            Bugsnag.leaveBreadcrumb("doInBackground");
 
             l_posLink.ManageRequest = l_manageRequest;
 
@@ -1855,6 +1910,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
+            Bugsnag.leaveBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1871,7 +1927,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private ProcessTransResult l_ptr;
 
         public OneShotReportTask(Promise promise, ReportRequest request, String transType) {
-
+            Bugsnag.leaveBreadcrumb("OneShotReportTask");
             l_reportRequest = request;
             l_promise= promise;
             l_transType = transType;
@@ -1893,6 +1949,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
+            Bugsnag.leaveBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1901,6 +1958,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
+            Bugsnag.leaveBreadcrumb("doInBackground");
 
             l_posLink.ReportRequest = l_reportRequest;
 
@@ -1919,6 +1977,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
+            Bugsnag.leaveBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1991,6 +2050,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 //    }
 
     private void taskCompleted(PosLink poslink, ProcessTransResult ptr, Promise promise, String transType) {
+        Bugsnag.leaveBreadcrumb("taskCompleted");
         // There will be 2 separate results that you must handle. First is the
         // ProcessTransResult, this will give you the result of the
         // request to call poslink. ManageResponse should only be checked if
@@ -2053,6 +2113,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     public void handleMessage(Message msg, Promise promise, String transType) {
+        Bugsnag.leaveBreadcrumb("handleMessage");
 
         switch (msg.what) {
             case Constant.TRANSACTION_SUCCESSED:
@@ -2201,6 +2262,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private Boolean IsIPv4(String ipaddress) {
+        Bugsnag.leaveBreadcrumb("IsIPv4");
 
         final String IPv4_REGEX =
                 "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\." +
@@ -2219,6 +2281,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * This method is for the first time setup of CommSetting
      * */
     private static CommSetting setupSetting(Context context) {
+        Bugsnag.leaveBreadcrumb("setupSetting");
 
         String settingIniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
         CommSetting commSetting = SettingINI.getCommSettingFromFile(settingIniFile);
@@ -2256,6 +2319,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
 
     private static String getElementByTagName(Document document, String tagName) {
+        Bugsnag.leaveBreadcrumb("getElementByTagName");
 
         // Returns value of first element matching tag name
         NodeList nodeList = document.getElementsByTagName(tagName);
@@ -2271,6 +2335,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
     private static Document convertStringToXMLDocument(String xmlString)
     {
+        Bugsnag.leaveBreadcrumb("convertStringToXMLDocument");
         //Parser that produces DOM object trees from XML content
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -2293,6 +2358,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     public static SessionInfo getSessionInfo() {
+        Bugsnag.leaveBreadcrumb("getSessionInfo");
         try {
             Realm realm = getRealmConfigurationStatic();
             return realm.where(SessionInfo.class).findFirst();
@@ -2306,6 +2372,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void getUuid(final Promise promise) {
+        Bugsnag.leaveBreadcrumb("getUuid");
         promise.resolve(UUID.randomUUID().toString());
     }
 }
