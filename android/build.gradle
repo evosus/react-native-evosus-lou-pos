@@ -17,6 +17,7 @@ buildscript {
 apply plugin: 'com.android.library'
 apply plugin: 'maven'
 apply plugin: 'realm-android'
+apply plugin: "com.bugsnag.android.gradle"
 
 
 // Matches values in recent template from React Native (0.59)
@@ -71,6 +72,7 @@ dependencies {
     implementation "io.noties.markwon:html:$markwon_version"
     implementation "io.noties.markwon:image:$markwon_version"
     implementation "com.google.code.gson:gson:2.7"
+    implementation "com.bugsnag:bugsnag-android:5.+"
 }
 
 def configureReactNativePom(def pom) {
