@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.bugsnag.android.BreadcrumbType;
 import com.bugsnag.android.Bugsnag;
 import com.evosus.loupos.models.CustomerDisplay;
 import com.evosus.loupos.models.EvosusCompany;
@@ -72,6 +73,8 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -217,7 +220,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void stopCustomerDisplay() {
-        Bugsnag.leaveBreadcrumb("stopCustomerDisplay");
+        sendBugsnagBreadcrumb("stopCustomerDisplay");
         if (getCurrentActivity() != null)
             getCurrentActivity().stopService(new Intent(reactContext, CustomerDisplayService.class));
     }
@@ -226,8 +229,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      *
      */
     @ReactMethod
-    public void setCustomerDisplayTrxMD(String trxMarkdown) {
-        Bugsnag.leaveBreadcrumb("setCustomerDisplayTrxMD");
+    public void setCustomerDisplayTrxMD(final String trxMarkdown) {
+        sendBugsnagBreadcrumb("setCustomerDisplayTrxMD", new HashMap<String, Object>() {{
+            put("trxMarkdown", trxMarkdown);
+        }});
         // This is used to communicate with the CustomerDisplay Service
         customerDisplayService.setCustomerDisplayTrxMD(trxMarkdown);
     }
@@ -312,7 +317,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void openCashDrawer() {
-        Bugsnag.leaveBreadcrumb("openCashDrawer");
+        sendBugsnagBreadcrumb("openCashDrawer");
         final ProcessResult result = POSLinkCashDrawer.getInstance(getReactApplicationContext()).open();
         if (!result.getCode().equals(ProcessResult.CODE_OK)) {
             getCurrentActivity().runOnUiThread(new Runnable() {
@@ -330,7 +335,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void getLastTransaction(Promise promise)
     {
-        Bugsnag.leaveBreadcrumb("getLastTransaction");
+        sendBugsnagBreadcrumb("getLastTransaction");
         if (!validatePOSLink(promise)) return;
 
         ReportRequest reportRequest = new ReportRequest();
@@ -353,8 +358,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditSale");
+    public void creditSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, Promise promise) {
+        sendBugsnagBreadcrumb("creditSale", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+            put("poNum", poNum);
+            put("taxAmt", taxAmt);
+            put("tipAmt", tipAmt);
+            put("extData", extData);
+        }});
 
         if (!validatePOSLink(promise)) return;
 
@@ -381,9 +393,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditAuth(String amount, String referenceNumber, String poNum, String extData, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditAuth");
-
+    public void creditAuth(final String amount, final String referenceNumber, final String poNum, final String extData, Promise promise) {
+        sendBugsnagBreadcrumb("creditAuth", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+            put("poNum", poNum);
+            put("extData", extData);
+        }});
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
@@ -405,9 +421,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditSaleEBT(String amount, String referenceNumber, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditSaleEBT");
-
+    public void creditSaleEBT(final String amount, final String referenceNumber, Promise promise) {
+        sendBugsnagBreadcrumb("creditSaleEBT", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+        }});
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
@@ -428,9 +446,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditRefund(String amount, String referenceNumber, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditRefund");
-
+    public void creditRefund(final String amount, final String referenceNumber, Promise promise) {
+        sendBugsnagBreadcrumb("creditRefund", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+        }});
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
@@ -453,9 +473,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditVoid(String amount, String referenceNumber, String origRefNum, String origECRRefNum, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditVoid");
-
+    public void creditVoid(final String amount, final String referenceNumber, final String origRefNum, final String origECRRefNum, Promise promise) {
+        sendBugsnagBreadcrumb("creditVoid", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+            put("origRefNum", origRefNum);
+            put("origECRRefNum", origECRRefNum);
+        }});
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
@@ -481,9 +505,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditForceAuth(String amount, String referenceNumber, String authCode, String poNum, String taxAmt, String extData, Promise promise) {
-        Bugsnag.leaveBreadcrumb("creditForceAuth");
-
+    public void creditForceAuth(final String amount, final String referenceNumber, final String authCode, final String poNum, final String taxAmt, final String extData, Promise promise) {
+        sendBugsnagBreadcrumb("creditForceAuth", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+            put("authCode", authCode);
+            put("poNum", poNum);
+            put("poNum", taxAmt);
+            put("poNum", extData);
+        }});
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
@@ -512,8 +542,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void debitSale(String amount, String referenceNumber, String poNum, String taxAmt, String tipAmt, String extData, Promise promise) {
-        Bugsnag.leaveBreadcrumb("debitSale");
+    public void debitSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, Promise promise) {
+        sendBugsnagBreadcrumb("debitSale", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+            put("poNum", poNum);
+            put("poNum", taxAmt);
+            put("tipAmt", tipAmt);
+            put("poNum", extData);
+        }});
 
         if (!validatePOSLink(promise)) return;
 
@@ -540,8 +577,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void debitRefund(String amount, String referenceNumber, Promise promise) {
-        Bugsnag.leaveBreadcrumb("debitRefund");
+    public void debitRefund(final String amount, final String referenceNumber, Promise promise) {
+        sendBugsnagBreadcrumb("debitRefund", new HashMap<String, Object>(){{
+            put("amount", amount);
+            put("referenceNumber", referenceNumber);
+        }});
 
         if (!validatePOSLink(promise)) return;
 
@@ -565,8 +605,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void checkPOSLink(String CommType, String Timeout, String IPAddress, boolean EnableProxy, final Promise promise) {
-        Bugsnag.leaveBreadcrumb("checkPOSLink");
+    public void checkPOSLink(final String CommType, final String Timeout, final String IPAddress, final boolean EnableProxy, final Promise promise) {
+        sendBugsnagBreadcrumb("checkPOSLink", new HashMap<String, Object>(){{
+            put("CommType", CommType);
+            put("Timeout", Timeout);
+            put("IPAddress", IPAddress);
+            put("EnableProxy", EnableProxy);
+        }});
 
         // Type - one of USB, TCP, AIDL
         // AIDL not implemented yet
@@ -627,7 +672,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private PosLink getPOSLink() {
-        Bugsnag.leaveBreadcrumb("getPOSLink");
+        sendBugsnagBreadcrumb("getPOSLink");
 
         PosLink posLink1 = POSLinkCreator.createPoslink(getReactApplicationContext());
 
@@ -639,14 +684,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     private void initPOSLink() {
-        Bugsnag.leaveBreadcrumb("initPOSLink");
+        sendBugsnagBreadcrumb("initPOSLink");
         bInited = true;
         AppThreadPool.getInstance();
         commSetting = setupSetting(getReactApplicationContext());
         POSLinkAndroid.init(getReactApplicationContext(), commSetting);
     }
 
-    private Realm getRealmConfiguration() {
+    private static Realm getRealmConfiguration() {
         Bugsnag.leaveBreadcrumb("getRealmConfiguration");
         // The RealmConfiguration is created using the builder pattern.
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
@@ -660,25 +705,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         return  Realm.getInstance(config);
     }
 
-    private static Realm getRealmConfigurationStatic() {
-        Bugsnag.leaveBreadcrumb("getRealmConfigurationStatic");
-        // The RealmConfiguration is created using the builder pattern.
-        // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
-        RealmConfiguration config = new RealmConfiguration.Builder()
-                .name("evosus.db")
-                .schemaVersion(47)
-                .build();
-        // Use the config
-        //Realm realm = Realm.getInstance(config);
-        return  Realm.getInstance(config);
-    }
-
     /**
      * @param promise
      */
     @ReactMethod
     public void batchClose(Promise promise) {
-        Bugsnag.leaveBreadcrumb("batchClose");
+        sendBugsnagBreadcrumb("batchClose");
 
         if (!validatePOSLink(promise)) return;
 
@@ -698,8 +730,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void loadRealmFromJSON(String entityName, String jsonString, Promise promise) {
-        Bugsnag.leaveBreadcrumb("loadRealmFromJSON");
+    public void loadRealmFromJSON(final String entityName, String jsonString, Promise promise) {
+        final String finalJsonString = jsonString;
+        sendBugsnagBreadcrumb("loadRealmFromJSON", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("jsonString", finalJsonString);
+        }});
         Log.d(this.getName(), entityName);
 
         if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
@@ -768,8 +804,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void findFirstRealmEntityByID(String entityName, String entityID, Boolean UseSKUID, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("findFirstRealmEntityByID");
+    public void findFirstRealmEntityByID(final String entityName, final String entityID, final Boolean UseSKUID, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("findFirstRealmEntityByID", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("entityID", entityID);
+            put("UseSKUID", UseSKUID);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
+
         Realm realm = null;
         try {
             realm = getRealmConfiguration();
@@ -887,8 +929,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void findAllEntity(String entityName, String searchString, Integer limit, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("findAllEntity");
+    public void findAllEntity(final String entityName, final String searchString, final Integer limit, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("findAllEntity", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("searchString", searchString);
+            put("limit", limit);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
 
         Realm realm = getRealmConfiguration();
         Boolean search = (searchString != null && !searchString.isEmpty());
@@ -980,8 +1027,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void deleteRealmEntity(String entityName, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("deleteRealmEntity");
+    public void deleteRealmEntity(final String entityName, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("deleteRealmEntity", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1074,8 +1124,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void deleteRealmObject(String entityName, String objectID, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("deleteRealmObject");
+    public void deleteRealmObject(final String entityName, final String objectID, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("deleteRealmObject", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("objectID", objectID);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1166,7 +1220,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void deleteRealmDB(Promise promise) {
-        Bugsnag.leaveBreadcrumb("deleteRealmDB");
+        sendBugsnagBreadcrumb("deleteRealmDB");
 
         Realm.deleteRealm(Realm.getDefaultConfiguration());
 
@@ -1179,8 +1233,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void countEntity(String entityName, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("countEntity");
+    public void countEntity(final String entityName, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("countEntity", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         Log.d(this.getName(), "Counting " + entityName);
         switch (entityName) {
@@ -1232,8 +1289,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void countEntitySearch(String entityName, String searchString, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("countEntitySearch");
+    public void countEntitySearch(final String entityName, final String searchString, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("countEntitySearch", new HashMap<String, Object>(){{
+            put("entityName", entityName);
+            put("searchString", searchString);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         Log.i(this.getName(), "Counting " + entityName);
         switch (entityName) {
@@ -1260,8 +1321,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void deleteExpiredPOSTransactions(String daysString, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("deleteExpiredPOSTransactions");
+    public void deleteExpiredPOSTransactions(final String daysString, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("deleteExpiredPOSTransactions", new HashMap<String, Object>(){{
+            put("daysString", daysString);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Integer days = Integer.parseInt(daysString);
 //        Log.e(this.getName(), "days: " + days);
         Realm realm = getRealmConfiguration();
@@ -1284,8 +1348,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void getPOSLineItemsFromCustomerVanityID(String customerVanityID, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("getPOSLineItemsFromCustomerVanityID");
+    public void getPOSLineItemsFromCustomerVanityID(final String customerVanityID, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("getPOSLineItemsFromCustomerVanityID", new HashMap<String, Object>(){{
+            put("customerVanityID", customerVanityID);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         RealmResults<POS_LineItem> customerHistoryLineItems = realm.where(POS_LineItem.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
@@ -1294,8 +1361,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         promise.resolve(customerHistoryLineItems);
     }
 
-    private void deletePOSTransactions(RealmResults<POS_Transaction> pos_transactions, String EvosusCompanySN) {
-        Bugsnag.leaveBreadcrumb("deletePOSTransactions");
+    private void deletePOSTransactions(final RealmResults<POS_Transaction> pos_transactions, final String EvosusCompanySN) {
+        sendBugsnagBreadcrumb("deletePOSTransactions", new HashMap<String, Object>(){{
+            put("customerVanityID", pos_transactions.asJSON());
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         realm.beginTransaction();
         for (POS_Transaction POS_Transaction: pos_transactions) {
@@ -1315,8 +1385,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    private void getPOSTransactionsToSync(String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("getPOSTransactionsToSync");
+    private void getPOSTransactionsToSync(final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("getPOSTransactionsToSync", new HashMap<String, Object>(){{
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
@@ -1325,8 +1397,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
     }
 
-    private RealmResults<POS_Transaction> findSessionTransactions(Realm realm, String sessionID, String status, String EvosusCompanySN) {
-        Bugsnag.leaveBreadcrumb("findSessionTransactions");
+    private RealmResults<POS_Transaction> findSessionTransactions(Realm realm, final String sessionID, final String status, final String EvosusCompanySN) {
+        sendBugsnagBreadcrumb("findSessionTransactions", new HashMap<String, Object>(){{
+            put("sessionID", sessionID);
+            put("status", status);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("POSStationSessionID", sessionID)
@@ -1341,8 +1417,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void getSessionTransactions(String sessionID, String status, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("getSessionTransactions");
+    public void getSessionTransactions(final String sessionID, final String status, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("getSessionTransactions", new HashMap<String, Object>(){{
+            put("sessionID", sessionID);
+            put("status", status);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
@@ -1354,8 +1434,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void deleteSessionTransactions(String sessionID, String status, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("deleteSessionTransactions");
+    public void deleteSessionTransactions(final String sessionID, final String status, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("deleteSessionTransactions", new HashMap<String, Object>(){{
+            put("sessionID", sessionID);
+            put("status", status);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
         RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         realm.beginTransaction();
@@ -1370,8 +1454,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void deletePOSLineItemsFromPOSTransaction(String posTransactionID, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("deletePOSLineItemsFromPOSTransaction");
+    public void deletePOSLineItemsFromPOSTransaction(final String posTransactionID, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("deletePOSLineItemsFromPOSTransaction", new HashMap<String, Object>(){{
+            put("sessionID", posTransactionID);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1400,9 +1487,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void getPOSLineItemsByPOSTransactionID(String entityID, String EvosusCompanySN, Promise promise) {
-        Bugsnag.leaveBreadcrumb("getPOSLineItemsByPOSTransactionID");
-
+    public void getPOSLineItemsByPOSTransactionID(final String entityID, final String EvosusCompanySN, Promise promise) {
+        sendBugsnagBreadcrumb("getPOSLineItemsByPOSTransactionID", new HashMap<String, Object>(){{
+            put("entityID", entityID);
+            put("EvosusCompanySN", EvosusCompanySN);
+        }});
         Realm realm = getRealmConfiguration();
 
         if (realm == null)
@@ -1420,7 +1509,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    public class MyMigration implements RealmMigration {
+    public static class MyMigration implements RealmMigration {
         @Override
         public void migrate(DynamicRealm realm, long oldVersion, long newVersion) {
 
@@ -1615,8 +1704,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void setTransactionKey(String userName, String userPassword, String mid, String deviceID, Promise promise) {
-        Bugsnag.leaveBreadcrumb("setTransactionKey");
+    public void setTransactionKey(final String userName, final String userPassword, final String mid, final String deviceID, Promise promise) {
+        sendBugsnagBreadcrumb("setTransactionKey", new HashMap<String, Object>(){{
+            put("userName", userName);
+            put("userPassword", userPassword);
+            put("mid", mid);
+            put("deviceID", deviceID);
+        }});
         if (!validatePOSLink(promise)) return;
 
         ManageRequest manageRequest = new ManageRequest();
@@ -1642,8 +1736,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void printReceipt(final String receiptText, final Promise promise) {
-        Bugsnag.leaveBreadcrumb("printReceipt");
-
+        sendBugsnagBreadcrumb("printReceipt", new HashMap<String, Object>(){{
+            put("receiptText", receiptText);
+        }});
         POSLinkPrinter posLinkPrinter = POSLinkPrinter.getInstance(getReactApplicationContext());
 
         if (posLinkPrinter == null){
@@ -1691,9 +1786,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private boolean l_allowCancel;
         private int l_timeToAllowCancel;
 
-        public OneShotPaymentTask2(Promise promise, PaymentRequest paymentRequest, String transType) {
-            Bugsnag.leaveBreadcrumb("OneShotPaymentTask2");
-
+        public OneShotPaymentTask2(Promise promise, final PaymentRequest paymentRequest, final String transType) {
+            sendBugsnagBreadcrumb("OneShotPaymentTask2", new HashMap<String, Object>(){{
+                put("paymentRequest", paymentRequest);
+                put("transType", transType);
+            }});
             l_paymentRequest = paymentRequest;
             l_promise= promise;
             l_transType = transType;
@@ -1723,7 +1820,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
-            Bugsnag.leaveBreadcrumb("onPreExecute");
+            sendBugsnagBreadcrumb("onPreExecute");
 
             if (dialog != null) {
                 dialog.setMessage("Processing...(cancel allowed in 5 seconds)");
@@ -1753,7 +1850,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
-            Bugsnag.leaveBreadcrumb("doInBackground");
+            sendBugsnagBreadcrumb("doInBackground");
 
             l_posLink.PaymentRequest = l_paymentRequest;
 
@@ -1773,7 +1870,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
-            Bugsnag.leaveBreadcrumb("onPostExecute");
+            sendBugsnagBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1789,8 +1886,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private String l_transType;
         private ProcessTransResult l_ptr;
 
-        public OneShotBatchTask(Promise promise, BatchRequest request, String transType) {
-            Bugsnag.leaveBreadcrumb("OneShotBatchTask");
+        public OneShotBatchTask(Promise promise, final BatchRequest request, final String transType) {
+            sendBugsnagBreadcrumb("OneShotBatchTask", new HashMap<String, Object>(){{
+                put("request", request);
+                put("transType", transType);
+            }});
 
             l_batchRequest = request;
             l_promise= promise;
@@ -1813,7 +1913,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
-            Bugsnag.leaveBreadcrumb("onPreExecute");
+            sendBugsnagBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1822,7 +1922,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
-            Bugsnag.leaveBreadcrumb("doInBackground");
+            sendBugsnagBreadcrumb("doInBackground");
 
             l_posLink.BatchRequest = l_batchRequest;
 
@@ -1842,7 +1942,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
-            Bugsnag.leaveBreadcrumb("onPostExecute");
+            sendBugsnagBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1858,8 +1958,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private PosLink l_posLink;
         private ProcessTransResult l_ptr;
 
-        public OneShotManageTask(Promise promise, ManageRequest request, String transType) {
-            Bugsnag.leaveBreadcrumb("OneShotManageTask");
+        public OneShotManageTask(Promise promise, final ManageRequest request, final String transType) {
+            sendBugsnagBreadcrumb("OneShotManageTask", new HashMap<String, Object>(){{
+                put("request", request);
+                put("transType", transType);
+            }});
 
             l_manageRequest = request;
             l_promise= promise;
@@ -1882,7 +1985,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
-            Bugsnag.leaveBreadcrumb("onPreExecute");
+            sendBugsnagBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1891,7 +1994,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
-            Bugsnag.leaveBreadcrumb("doInBackground");
+            sendBugsnagBreadcrumb("doInBackground");
 
             l_posLink.ManageRequest = l_manageRequest;
 
@@ -1910,7 +2013,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
-            Bugsnag.leaveBreadcrumb("onPostExecute");
+            sendBugsnagBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -1926,8 +2029,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         private PosLink l_posLink;
         private ProcessTransResult l_ptr;
 
-        public OneShotReportTask(Promise promise, ReportRequest request, String transType) {
-            Bugsnag.leaveBreadcrumb("OneShotReportTask");
+        public OneShotReportTask(Promise promise, final ReportRequest request, final String transType) {
+            sendBugsnagBreadcrumb("OneShotReportTask", new HashMap<String, Object>(){{
+                put("request", request);
+                put("transType", transType);
+            }});
             l_reportRequest = request;
             l_promise= promise;
             l_transType = transType;
@@ -1949,7 +2055,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected void onPreExecute() {
-            Bugsnag.leaveBreadcrumb("onPreExecute");
+            sendBugsnagBreadcrumb("onPreExecute");
             if (dialog != null) {
                 dialog.setMessage("Processing...");
                 dialog.show();
@@ -1958,7 +2064,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
         @Override
         protected Void doInBackground(Void... args) {
-            Bugsnag.leaveBreadcrumb("doInBackground");
+            sendBugsnagBreadcrumb("doInBackground");
 
             l_posLink.ReportRequest = l_reportRequest;
 
@@ -1977,7 +2083,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
         @Override
         protected void onPostExecute(Void result) {
-            Bugsnag.leaveBreadcrumb("onPostExecute");
+            sendBugsnagBreadcrumb("onPostExecute");
             // do UI work here
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -2049,8 +2155,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 //        }
 //    }
 
-    private void taskCompleted(PosLink poslink, ProcessTransResult ptr, Promise promise, String transType) {
-        Bugsnag.leaveBreadcrumb("taskCompleted");
+    private void taskCompleted(final PosLink poslink, final ProcessTransResult ptr, Promise promise, final String transType) {
+        sendBugsnagBreadcrumb("taskCompleted", new HashMap<String, Object>(){{
+            put("poslink", poslink.toString());
+            put("ptr", ptr);
+            put("transType", transType);
+        }});
         // There will be 2 separate results that you must handle. First is the
         // ProcessTransResult, this will give you the result of the
         // request to call poslink. ManageResponse should only be checked if
@@ -2112,8 +2222,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    public void handleMessage(Message msg, Promise promise, String transType) {
-        Bugsnag.leaveBreadcrumb("handleMessage");
+    public void handleMessage(Message msg, Promise promise, final String transType) {
+        sendBugsnagBreadcrumb("handleMessage", new HashMap<String, Object>(){{
+            put("transType", transType);
+        }});
 
         switch (msg.what) {
             case Constant.TRANSACTION_SUCCESSED:
@@ -2261,9 +2373,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    private Boolean IsIPv4(String ipaddress) {
-        Bugsnag.leaveBreadcrumb("IsIPv4");
-
+    private Boolean IsIPv4(final String ipaddress) {
+        sendBugsnagBreadcrumb("IsIPv4", new HashMap<String, Object>(){{
+            put("ipaddress", ipaddress);
+        }});
         final String IPv4_REGEX =
                 "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\." +
                         "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\." +
@@ -2281,7 +2394,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * This method is for the first time setup of CommSetting
      * */
     private static CommSetting setupSetting(Context context) {
-        Bugsnag.leaveBreadcrumb("setupSetting");
+        sendBugsnagBreadcrumb("setupSetting");
 
         String settingIniFile = context.getFilesDir().getAbsolutePath() + "/" + SettingINI.FILENAME;
         CommSetting commSetting = SettingINI.getCommSettingFromFile(settingIniFile);
@@ -2318,8 +2431,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
 
-    private static String getElementByTagName(Document document, String tagName) {
-        Bugsnag.leaveBreadcrumb("getElementByTagName");
+    private static String getElementByTagName(final Document document, final String tagName) {
+        sendBugsnagBreadcrumb("getElementByTagName", new HashMap<String, Object>(){{
+            put("document", document);
+            put("tagName", tagName);
+        }});
 
         // Returns value of first element matching tag name
         NodeList nodeList = document.getElementsByTagName(tagName);
@@ -2333,9 +2449,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
     }
 
-    private static Document convertStringToXMLDocument(String xmlString)
+    private static Document convertStringToXMLDocument(final String xmlString)
     {
-        Bugsnag.leaveBreadcrumb("convertStringToXMLDocument");
+        sendBugsnagBreadcrumb("convertStringToXMLDocument", new HashMap<String, Object>(){{
+            put("xmlString", xmlString);
+        }});
         //Parser that produces DOM object trees from XML content
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -2358,9 +2476,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     }
 
     public static SessionInfo getSessionInfo() {
-        Bugsnag.leaveBreadcrumb("getSessionInfo");
+        sendBugsnagBreadcrumb("getSessionInfo");
         try {
-            Realm realm = getRealmConfigurationStatic();
+            Realm realm = getRealmConfiguration();
             return realm.where(SessionInfo.class).findFirst();
         } catch (Error e) {
             return null;
@@ -2372,7 +2490,19 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void getUuid(final Promise promise) {
-        Bugsnag.leaveBreadcrumb("getUuid");
+        sendBugsnagBreadcrumb("getUuid");
         promise.resolve(UUID.randomUUID().toString());
+    }
+
+    private static void sendBugsnagBreadcrumb(String methodName) {
+        sendBugsnagBreadcrumb(methodName, null);
+    }
+
+        private static void sendBugsnagBreadcrumb(String methodName, Map<String, Object> parameters) {
+        if (parameters != null) {
+            Bugsnag.leaveBreadcrumb(methodName, parameters, BreadcrumbType.LOG);
+        } else {
+            Bugsnag.leaveBreadcrumb(methodName);
+        }
     }
 }
