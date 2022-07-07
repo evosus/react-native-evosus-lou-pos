@@ -2489,8 +2489,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void getUuid(final Promise promise) {
-        sendBugsnagBreadcrumb("getUuid");
+    public void getUUID(final Promise promise) {
+        sendBugsnagBreadcrumb("getUUID");
         promise.resolve(UUID.randomUUID().toString());
     }
 
@@ -2498,7 +2498,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         sendBugsnagBreadcrumb(methodName, null);
     }
 
-        private static void sendBugsnagBreadcrumb(String methodName, Map<String, Object> parameters) {
+    private static void sendBugsnagBreadcrumb(String methodName, Map<String, Object> parameters) {
         if (parameters != null) {
             Bugsnag.leaveBreadcrumb(methodName, parameters, BreadcrumbType.LOG);
         } else {
