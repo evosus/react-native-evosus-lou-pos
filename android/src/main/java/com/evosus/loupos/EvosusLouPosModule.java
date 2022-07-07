@@ -95,6 +95,7 @@ import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmList;
 import io.realm.RealmMigration;
+import io.realm.RealmObjectSchema;
 import io.realm.RealmResults;
 import io.realm.RealmSchema;
 
@@ -697,7 +698,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(47)
+                .schemaVersion(48)
                 .migration(new MyMigration())
                 .build();
         // Use the config
@@ -1641,6 +1642,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("PosStationName", String.class)
                         .addField("PosStationId", String.class);
                 oldVersion++;
+            }
+            if (oldVersion < 48) {
+                try {
+                    RealmObjectSchema posTrxSchema = schema.get("POS_Transaction");
+                    if (posTrxSchema.hasField("DateCompleted")) {
+                        posTrxSchema.removeField("DateComplated");
+                    }
+                } catch (Error e) {
+                    Bugsnag.notify(e);
+                    Log.e("REALM Migration", e.getMessage());
+                }
             }
         }
         @Override
