@@ -1653,6 +1653,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Bugsnag.notify(e);
                     Log.e("REALM Migration", e.getMessage());
                 }
+                oldVersion++;
             }
             if (oldVersion < 50) {
                 try {

@@ -1,7 +1,7 @@
 {
   "name": "react-native-evosus-lou-pos",
   "title": "React Native Evosus Lou Pos",
-  "version": "1.0.52",
+  "version": "1.0.53",
   "description": "React Native Extension fo LOU POS",
   "main": "index.js",
   "scripts": {
