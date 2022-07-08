@@ -698,7 +698,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(49)
+                .schemaVersion(50)
                 .migration(new MyMigration())
                 .build();
         // Use the config
