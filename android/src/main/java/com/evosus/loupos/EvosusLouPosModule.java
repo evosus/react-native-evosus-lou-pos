@@ -1654,6 +1654,25 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Log.e("REALM Migration", e.getMessage());
                 }
             }
+            if (oldVersion < 50) {
+                try {
+                    Boolean sessionInfoExists = schema.contains("SessionInfo");
+                    if (!sessionInfoExists) {
+                        schema.create("SessionInfo")
+                        .addField("Email", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("Username", String.class)
+                        .addField("CompanySerialNumber", String.class)
+                        .addField("CompanyName", String.class)
+                        .addField("PosStationName", String.class)
+                        .addField("PosStationId", String.class);
+                    }
+                } catch (Error e) {
+                    Bugsnag.notify(e);
+                    Log.e("REALM Migration", e.getMessage());
+                }
+                oldVersion++;
+            }
+
         }
         @Override
         public int hashCode() {
