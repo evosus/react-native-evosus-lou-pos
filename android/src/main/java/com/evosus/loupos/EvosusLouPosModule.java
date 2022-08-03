@@ -70,6 +70,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -255,7 +256,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         ManageRequest manageRequest = new ManageRequest();
         manageRequest.TransType = manageRequest.ParseTransType("INIT");
 
-        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "INIT");
+        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "INIT", getPOSLink(), getCurrentActivity());
         oneShotManageTask.execute();
 
     }
@@ -344,7 +345,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         reportRequest.EDCType = reportRequest.ParseEDCType("ALL");
         reportRequest.LastTransaction = "1";
 
-        OneShotReportTask oneShotReportTask = new OneShotReportTask(promise, reportRequest, "LOCALDETAILREPORT");
+        OneShotReportTask oneShotReportTask = new OneShotReportTask(promise, reportRequest, "LOCALDETAILREPORT", getPOSLink(), getCurrentActivity());
         oneShotReportTask.execute();
 
     }
@@ -382,7 +383,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
     }
 
@@ -412,7 +413,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "AUTH");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "AUTH", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
     }
 
@@ -436,7 +437,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -461,7 +462,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "RETURN");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "RETURN", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -491,7 +492,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.OrigECRRefNum = origECRRefNum;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "VOID");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "VOID", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -528,7 +529,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "FORCEAUTH");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "FORCEAUTH", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -567,7 +568,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.ExtData = extData;
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -593,7 +594,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         paymentRequest.Amount = amount; // It is expected that $1.23 will arrive as "123", $0.09 as "9"
 
         // Recommend to use single thread pool instead.
-        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "RETURN");
+        OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "RETURN", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
 
     }
@@ -720,7 +721,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         batchRequest.EDCType = batchRequest.ParseEDCType(EDCType.ALL);
 
         // Recommend to use single thread pool instead.
-        OneShotBatchTask oneShotBatchTask = new OneShotBatchTask(promise, batchRequest, "BATCHCLOSE");
+        OneShotBatchTask oneShotBatchTask = new OneShotBatchTask(promise, batchRequest, "BATCHCLOSE", getPOSLink(), getCurrentActivity());
         oneShotBatchTask.execute();
 
     }
@@ -732,72 +733,73 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      */
     @ReactMethod
     public void loadRealmFromJSON(final String entityName, String jsonString, Promise promise) {
+        String updatedJsonString;
         final String finalJsonString = jsonString;
         sendBugsnagBreadcrumb("loadRealmFromJSON", new HashMap<String, Object>(){{
             put("entityName", entityName);
             put("jsonString", finalJsonString);
         }});
         Log.d(this.getName(), entityName);
-
         if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
-            jsonString = '[' + jsonString + ']';
+            updatedJsonString = '[' + jsonString + ']';
+        } else {
+            updatedJsonString = jsonString;
         }
         Realm realm = getRealmConfiguration();
-        if (realm == null)
+        if (realm == null) {
             promise.resolve(false);
-
-        switch (entityName) {
-            case "ProductSetup.CustomerDisplay":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(CustomerDisplay.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKU":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(SKU.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "LOUAPI.LOUAPIJWT":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(LOUAPIJWT.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "TSYS.TSYSMerchant":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(TSYSMerchant.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "AdminConsole.EvosusCompany":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(EvosusCompany.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_Transaction":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(POS_Transaction.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_LineItem":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(POS_LineItem.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKUKitLine":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(SKUKitLine.class, jsonString);
-                realm.commitTransaction();
-                break;
-            case "POS.SessionInfo":
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(SessionInfo.class, jsonString);
-                realm.commitTransaction();
-                break;
+        } else {
+            switch (entityName) {
+                case "ProductSetup.CustomerDisplay":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(CustomerDisplay.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKU":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(SKU.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "LOUAPI.LOUAPIJWT":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(LOUAPIJWT.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "TSYS.TSYSMerchant":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(TSYSMerchant.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "AdminConsole.EvosusCompany":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(EvosusCompany.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_Transaction":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(POS_Transaction.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_LineItem":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(POS_LineItem.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKUKitLine":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(SKUKitLine.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+                case "POS.SessionInfo":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(SessionInfo.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
+            }
         }
         // This is important
         realm.close();
-
         promise.resolve(true);
-
     }
 
     /**
@@ -1035,89 +1037,89 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }});
         Realm realm = getRealmConfiguration();
 
-        if (realm == null)
+        if (realm == null) {
             promise.resolve(false);
-        switch (entityName) {
-            case "ProductSetup.CustomerDisplay":
-                final RealmResults<CustomerDisplay> customerDisplays = realm.where(CustomerDisplay.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                customerDisplays.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKU":
-                final RealmResults<SKU> SKUs = realm.where(SKU.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                SKUs.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "LOUAPI.LOUAPIJWT":
-                realm.beginTransaction();
-                realm.delete(LOUAPIJWT.class);
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "TSYS.TSYSMerchant":
-                realm.beginTransaction();
-                realm.delete(TSYSMerchant.class);
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "AdminConsole.EvosusCompany":
-                final RealmResults<EvosusCompany> EvosusCompanies = realm.where(EvosusCompany.class)
-                        .equalTo("SerialNumber", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                EvosusCompanies.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_Transaction":
-                final RealmResults<POS_Transaction> POS_Transactions = realm.where(POS_Transaction.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                POS_Transactions.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_LineItem":
-                final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                POS_LineItems.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKUKitLine":
-                final RealmResults<SKUKitLine> SKUKitLines = realm.where(SKUKitLine.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .findAll();
-                realm.beginTransaction();
-                SKUKitLines.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "POS.SessionInfo":
-                final RealmResults<SessionInfo> sessionInfos = realm.where(SessionInfo.class)
-                        .findAll();
-                realm.beginTransaction();
-                sessionInfos.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
+        } else {
+            switch (entityName) {
+                case "ProductSetup.CustomerDisplay":
+                    final RealmResults<CustomerDisplay> customerDisplays = realm.where(CustomerDisplay.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    customerDisplays.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKU":
+                    final RealmResults<SKU> SKUs = realm.where(SKU.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    SKUs.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "LOUAPI.LOUAPIJWT":
+                    realm.beginTransaction();
+                    realm.delete(LOUAPIJWT.class);
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "TSYS.TSYSMerchant":
+                    realm.beginTransaction();
+                    realm.delete(TSYSMerchant.class);
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "AdminConsole.EvosusCompany":
+                    final RealmResults<EvosusCompany> EvosusCompanies = realm.where(EvosusCompany.class)
+                            .equalTo("SerialNumber", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    EvosusCompanies.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_Transaction":
+                    final RealmResults<POS_Transaction> POS_Transactions = realm.where(POS_Transaction.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    POS_Transactions.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_LineItem":
+                    final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    POS_LineItems.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKUKitLine":
+                    final RealmResults<SKUKitLine> SKUKitLines = realm.where(SKUKitLine.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .findAll();
+                    realm.beginTransaction();
+                    SKUKitLines.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "POS.SessionInfo":
+                    final RealmResults<SessionInfo> sessionInfos = realm.where(SessionInfo.class)
+                            .findAll();
+                    realm.beginTransaction();
+                    sessionInfos.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+            }
+            // This is important
+            realm.close();
+            promise.resolve(true);
         }
-
-        // This is important
-        realm.close();
-
-        promise.resolve(true);
     }
 
     /**
@@ -1133,87 +1135,85 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }});
         Realm realm = getRealmConfiguration();
 
-        if (realm == null)
+        if (realm == null) {
             promise.resolve(false);
-
-        switch (entityName) {
-            case "ProductSetup.CustomerDisplay":
-                realm.beginTransaction();
-                RealmResults<CustomerDisplay> customerDisplaystoDelete = realm.where(CustomerDisplay.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("CustomerVanityID", objectID)
-                        .findAll();
-                customerDisplaystoDelete.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKU":
-                RealmResults<SKU> SKUsToDelete = realm.where(SKU.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("CustomerVanityID", objectID)
-                        .findAll();
-                realm.beginTransaction();
-                SKUsToDelete.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "LOUAPI.LOUAPIJWT":
-                realm.beginTransaction();
-                realm.delete(LOUAPIJWT.class);
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "TSYS.TSYSMerchant":
-                realm.beginTransaction();
-                realm.delete(TSYSMerchant.class);
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "AdminConsole.EvosusCompany":
-                realm.beginTransaction();
-                realm.delete(EvosusCompany.class);
-                Log.d(this.getName(), "Deleted realm entity " + entityName);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_Transaction":
-                realm.beginTransaction();
-                RealmResults<POS_Transaction> transactionsToDelete = realm.where(POS_Transaction.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", objectID)
-                        .findAll();
-                // Log.d(this.getName(), "objectToDelete: " + transactionsToDelete.asJSON());
-                transactionsToDelete.deleteAllFromRealm();
-                // Log.d(this.getName(), "Deleted realm object " + entityName);
-                realm.commitTransaction();
-                break;
-            case "POS.POS_LineItem":
-                realm.beginTransaction();
-                RealmResults<POS_LineItem> lineItemsToDelete = realm.where(POS_LineItem.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", objectID)
-                        .findAll();
-                Log.d(this.getName(), "objectToDelete: " + lineItemsToDelete.asJSON());
-                lineItemsToDelete.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm object " + entityName);
-                realm.commitTransaction();
-                break;
-            case "Inventory.SKUKitLine":
-                realm.beginTransaction();
-                RealmResults<SKUKitLine> skuKitLinesToDelete = realm.where(SKUKitLine.class)
-                        .equalTo("EvosusCompanySN", EvosusCompanySN)
-                        .equalTo("ID_", objectID)
-                        .findAll();
-                Log.d(this.getName(), "objectToDelete: " + skuKitLinesToDelete.asJSON());
-                skuKitLinesToDelete.deleteAllFromRealm();
-                Log.d(this.getName(), "Deleted realm object " + entityName);
-                realm.commitTransaction();
-                break;
+        } else {
+            switch (entityName) {
+                case "ProductSetup.CustomerDisplay":
+                    realm.beginTransaction();
+                    RealmResults<CustomerDisplay> customerDisplaystoDelete = realm.where(CustomerDisplay.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("CustomerVanityID", objectID)
+                            .findAll();
+                    customerDisplaystoDelete.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKU":
+                    RealmResults<SKU> SKUsToDelete = realm.where(SKU.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("CustomerVanityID", objectID)
+                            .findAll();
+                    realm.beginTransaction();
+                    SKUsToDelete.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "LOUAPI.LOUAPIJWT":
+                    realm.beginTransaction();
+                    realm.delete(LOUAPIJWT.class);
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "TSYS.TSYSMerchant":
+                    realm.beginTransaction();
+                    realm.delete(TSYSMerchant.class);
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "AdminConsole.EvosusCompany":
+                    realm.beginTransaction();
+                    realm.delete(EvosusCompany.class);
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_Transaction":
+                    realm.beginTransaction();
+                    RealmResults<POS_Transaction> transactionsToDelete = realm.where(POS_Transaction.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", objectID)
+                            .findAll();
+                    // Log.d(this.getName(), "objectToDelete: " + transactionsToDelete.asJSON());
+                    transactionsToDelete.deleteAllFromRealm();
+                    // Log.d(this.getName(), "Deleted realm object " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "POS.POS_LineItem":
+                    realm.beginTransaction();
+                    RealmResults<POS_LineItem> lineItemsToDelete = realm.where(POS_LineItem.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", objectID)
+                            .findAll();
+                    Log.d(this.getName(), "objectToDelete: " + lineItemsToDelete.asJSON());
+                    lineItemsToDelete.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm object " + entityName);
+                    realm.commitTransaction();
+                    break;
+                case "Inventory.SKUKitLine":
+                    realm.beginTransaction();
+                    RealmResults<SKUKitLine> skuKitLinesToDelete = realm.where(SKUKitLine.class)
+                            .equalTo("EvosusCompanySN", EvosusCompanySN)
+                            .equalTo("ID_", objectID)
+                            .findAll();
+                    Log.d(this.getName(), "objectToDelete: " + skuKitLinesToDelete.asJSON());
+                    skuKitLinesToDelete.deleteAllFromRealm();
+                    Log.d(this.getName(), "Deleted realm object " + entityName);
+                    realm.commitTransaction();
+                    break;
+            }
+            realm.close();
+            promise.resolve(true);
         }
-
-        // This is important
-        realm.close();
-
-        promise.resolve(true);
     }
 
     /**
@@ -1462,23 +1462,25 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }});
         Realm realm = getRealmConfiguration();
 
-        if (realm == null)
+        if (realm == null) {
             promise.resolve(false);
-        Log.d(this.getName(), "POS_TransactionID: " + posTransactionID);
-        final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
-                .equalTo("EvosusCompanySN", EvosusCompanySN)
-                .equalTo("POS_TransactionID", posTransactionID)
-                .findAll();
-        if (POS_LineItems != null) {
-            realm.beginTransaction();
-
-            POS_LineItems.deleteAllFromRealm();
-            promise.resolve(true);
-            realm.commitTransaction();
-
-            Log.d(this.getName(), "Deleted POSLineItems by POSTransaction");
         } else {
-            promise.reject("POS_LineItems not found.");
+            Log.d(this.getName(), "POS_TransactionID: " + posTransactionID);
+            final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+                    .equalTo("EvosusCompanySN", EvosusCompanySN)
+                    .equalTo("POS_TransactionID", posTransactionID)
+                    .findAll();
+            if (POS_LineItems != null) {
+                realm.beginTransaction();
+
+                POS_LineItems.deleteAllFromRealm();
+                promise.resolve(true);
+                realm.commitTransaction();
+
+                Log.d(this.getName(), "Deleted POSLineItems by POSTransaction");
+            } else {
+                promise.reject("POS_LineItems not found.");
+            }
         }
     }
 
@@ -1495,18 +1497,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }});
         Realm realm = getRealmConfiguration();
 
-        if (realm == null)
+        if (realm == null) {
             promise.resolve(false);
-        Log.d(this.getName(), "POS_TransactionID: " + entityID);
-        final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
-                .equalTo("EvosusCompanySN", EvosusCompanySN)
-                .equalTo("POS_TransactionID", entityID)
-                .findAll();
-        if (POS_LineItems != null) {
-            promise.resolve(new Gson().toJson(realm.copyFromRealm(POS_LineItems)));
-            Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem");
         } else {
-            promise.reject("POS_LineItems not found.");
+            Log.d(this.getName(), "POS_TransactionID: " + entityID);
+            final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+                    .equalTo("EvosusCompanySN", EvosusCompanySN)
+                    .equalTo("POS_TransactionID", entityID)
+                    .findAll();
+            if (POS_LineItems != null) {
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(POS_LineItems)));
+                Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem");
+            } else {
+                promise.reject("POS_LineItems not found.");
+            }
         }
     }
 
@@ -1660,12 +1664,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Boolean sessionInfoExists = schema.contains("SessionInfo");
                     if (!sessionInfoExists) {
                         schema.create("SessionInfo")
-                        .addField("Email", String.class, FieldAttribute.PRIMARY_KEY)
-                        .addField("Username", String.class)
-                        .addField("CompanySerialNumber", String.class)
-                        .addField("CompanyName", String.class)
-                        .addField("PosStationName", String.class)
-                        .addField("PosStationId", String.class);
+                                .addField("Email", String.class, FieldAttribute.PRIMARY_KEY)
+                                .addField("Username", String.class)
+                                .addField("CompanySerialNumber", String.class)
+                                .addField("CompanyName", String.class)
+                                .addField("PosStationName", String.class)
+                                .addField("PosStationId", String.class);
                     }
                 } catch (Error e) {
                     Bugsnag.notify(e);
@@ -1723,7 +1727,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         manageRequest.TransType = manageRequest.ParseTransType("REBOOT");
         manageRequest.EDCType = manageRequest.ParseEDCType("ALL");
 
-        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "REBOOT");
+        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "REBOOT", getPOSLink(), getCurrentActivity());
         oneShotManageTask.execute();
 
     }
@@ -1757,7 +1761,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         manageRequest.VarName3 = "DeviceID";
         manageRequest.VarValue3 = deviceID;
 
-        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "SETTRANSACTIONKEY");
+        OneShotManageTask oneShotManageTask = new OneShotManageTask(promise, manageRequest, "SETTRANSACTIONKEY", getPOSLink(), getCurrentActivity());
         oneShotManageTask.execute();
 
     }
@@ -1808,17 +1812,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
     }
 
-    private class OneShotPaymentTask2  extends AsyncTask<Void, Void, Void> {
-        private ProgressDialog dialog;
-        private PaymentRequest l_paymentRequest;
-        private Promise l_promise;
-        private String l_transType;
-        private PosLink l_posLink;
-        private ProcessTransResult l_ptr;
+    private static class OneShotPaymentTask2  extends AsyncTask<Void, Void, Void> {
+        private final ProgressDialog dialog;
+        private final PaymentRequest l_paymentRequest;
+        private final Promise l_promise;
+        private final String l_transType;
+        private final PosLink l_posLink;
         private boolean l_allowCancel;
         private int l_timeToAllowCancel;
 
-        public OneShotPaymentTask2(Promise promise, final PaymentRequest paymentRequest, final String transType) {
+
+        public OneShotPaymentTask2(Promise promise, final PaymentRequest paymentRequest, final String transType, PosLink posLink, Activity activity) {
             sendBugsnagBreadcrumb("OneShotPaymentTask2", new HashMap<String, Object>(){{
                 put("paymentRequest", paymentRequest);
                 put("transType", transType);
@@ -1826,8 +1830,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             l_paymentRequest = paymentRequest;
             l_promise= promise;
             l_transType = transType;
-            l_posLink = getPOSLink();
+            l_posLink = posLink;
             l_allowCancel = false;
+            WeakReference<Activity> l_activity = new WeakReference<Activity>(activity);
 
             TimerTask l_task = new TimerTask() {
                 @Override
@@ -1838,7 +1843,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             Timer l_timer = new Timer();
             l_timer.schedule(l_task, 5000); // 5 seconds
 
-            dialog = new ProgressDialog(getCurrentActivity());
+            dialog = new ProgressDialog(l_activity.get());
             dialog.setMessage("Processing...");
             dialog.setCancelable(true);
             dialog.setCanceledOnTouchOutside(false);
@@ -1888,7 +1893,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 
             // ProcessTrans is Blocking call, will return when the transaction is complete.
             CountRunTime.start("Payment");
-            l_ptr = l_posLink.ProcessTrans();
+            ProcessTransResult l_ptr = l_posLink.ProcessTrans();
             CountRunTime.countPoint("Payment");
             taskCompleted(l_posLink, l_ptr, l_promise, l_transType);
 //            getCurrentActivity().runOnUiThread(new Runnable() {
@@ -1910,15 +1915,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    private class OneShotBatchTask  extends AsyncTask<Void, Void, Void> {
-        private ProgressDialog dialog;
-        private BatchRequest l_batchRequest;
-        private Promise l_promise;
-        private PosLink l_posLink;
-        private String l_transType;
+    private static class OneShotBatchTask  extends AsyncTask<Void, Void, Void> {
+        private final ProgressDialog dialog;
+        private final BatchRequest l_batchRequest;
+        private final Promise l_promise;
+        private final PosLink l_posLink;
+        private final String l_transType;
         private ProcessTransResult l_ptr;
+        private final WeakReference<Activity> l_activity;
 
-        public OneShotBatchTask(Promise promise, final BatchRequest request, final String transType) {
+        public OneShotBatchTask(Promise promise, final BatchRequest request, final String transType, PosLink posLink, Activity activity) {
             sendBugsnagBreadcrumb("OneShotBatchTask", new HashMap<String, Object>(){{
                 put("request", request);
                 put("transType", transType);
@@ -1927,9 +1933,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             l_batchRequest = request;
             l_promise= promise;
             l_transType = transType;
-            l_posLink = getPOSLink();
-
-            dialog = new ProgressDialog(getCurrentActivity());
+            l_posLink = posLink;
+            l_activity = new WeakReference<Activity>(activity);
+            dialog = new ProgressDialog(l_activity.get());
             dialog.setMessage("Processing...");
             dialog.setCancelable(true);
             dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
@@ -1962,7 +1968,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             CountRunTime.start("Batch");
             l_ptr = l_posLink.ProcessTrans();
             CountRunTime.countPoint("Batch");
-            getCurrentActivity().runOnUiThread(new Runnable() {
+            l_activity.get().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     taskCompleted(l_posLink, l_ptr, l_promise, l_transType);
@@ -1982,15 +1988,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    private class OneShotManageTask  extends AsyncTask<Void, Void, Void> {
-        private ProgressDialog dialog;
-        private ManageRequest l_manageRequest;
-        private Promise l_promise;
-        private String l_transType;
-        private PosLink l_posLink;
+    private static class OneShotManageTask  extends AsyncTask<Void, Void, Void> {
+        private final ProgressDialog dialog;
+        private final ManageRequest l_manageRequest;
+        private final Promise l_promise;
+        private final String l_transType;
+        private final PosLink l_posLink;
         private ProcessTransResult l_ptr;
+        private final WeakReference<Activity> l_activity;
 
-        public OneShotManageTask(Promise promise, final ManageRequest request, final String transType) {
+        public OneShotManageTask(Promise promise, final ManageRequest request, final String transType, PosLink posLink, Activity activity) {
             sendBugsnagBreadcrumb("OneShotManageTask", new HashMap<String, Object>(){{
                 put("request", request);
                 put("transType", transType);
@@ -1999,9 +2006,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             l_manageRequest = request;
             l_promise= promise;
             l_transType = transType;
-            l_posLink = getPOSLink();
+            l_posLink = posLink;
+            l_activity = new WeakReference<Activity>(activity);
 
-            dialog = new ProgressDialog(getCurrentActivity());
+            dialog = new ProgressDialog(l_activity.get());
             dialog.setMessage("Processing...");
             dialog.setCancelable(true);
             dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
@@ -2034,7 +2042,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             CountRunTime.start("Manage");
             l_ptr = l_posLink.ProcessTrans();
             CountRunTime.countPoint("Manage");
-            getCurrentActivity().runOnUiThread(new Runnable() {
+            l_activity.get().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     taskCompleted(l_posLink, l_ptr, l_promise, l_transType);
@@ -2053,15 +2061,16 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    private class OneShotReportTask  extends AsyncTask<Void, Void, Void> {
-        private ProgressDialog dialog;
-        private ReportRequest l_reportRequest;
-        private Promise l_promise;
-        private String l_transType;
-        private PosLink l_posLink;
+    private static class OneShotReportTask  extends AsyncTask<Void, Void, Void> {
+        private final ProgressDialog dialog;
+        private final ReportRequest l_reportRequest;
+        private final Promise l_promise;
+        private final String l_transType;
+        private final PosLink l_posLink;
         private ProcessTransResult l_ptr;
+        private final WeakReference<Activity> l_activity;
 
-        public OneShotReportTask(Promise promise, final ReportRequest request, final String transType) {
+        public OneShotReportTask(Promise promise, final ReportRequest request, final String transType, PosLink posLink, Activity activity) {
             sendBugsnagBreadcrumb("OneShotReportTask", new HashMap<String, Object>(){{
                 put("request", request);
                 put("transType", transType);
@@ -2069,9 +2078,10 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             l_reportRequest = request;
             l_promise= promise;
             l_transType = transType;
-            l_posLink = getPOSLink();
+            l_posLink = posLink;
+            l_activity = new WeakReference<Activity>(activity);
 
-            dialog = new ProgressDialog(getCurrentActivity());
+            dialog = new ProgressDialog(l_activity.get());
             dialog.setMessage("Processing...");
             dialog.setCancelable(true);
             dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
@@ -2104,7 +2114,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             CountRunTime.start("Report");
             l_ptr = l_posLink.ProcessTrans();
             CountRunTime.countPoint("Report");
-            getCurrentActivity().runOnUiThread(new Runnable() {
+            l_activity.get().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     taskCompleted(l_posLink, l_ptr, l_promise, l_transType);
@@ -2187,7 +2197,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
 //        }
 //    }
 
-    private void taskCompleted(final PosLink poslink, final ProcessTransResult ptr, Promise promise, final String transType) {
+    private static void taskCompleted(final PosLink poslink, final ProcessTransResult ptr, Promise promise, final String transType) {
         sendBugsnagBreadcrumb("taskCompleted", new HashMap<String, Object>(){{
             put("poslink", poslink.toString());
             put("ptr", ptr);
@@ -2254,7 +2264,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         }
     }
 
-    public void handleMessage(Message msg, Promise promise, final String transType) {
+    public static void handleMessage(Message msg, Promise promise, final String transType) {
         sendBugsnagBreadcrumb("handleMessage", new HashMap<String, Object>(){{
             put("transType", transType);
         }});
