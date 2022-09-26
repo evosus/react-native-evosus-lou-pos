@@ -26,18 +26,17 @@ import com.bugsnag.android.Bugsnag;
 import com.evosus.loupos.models.CustomerDisplay;
 import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
-import com.evosus.loupos.models.POS_LineItem;
+import com.evosus.loupos.models.POS_LineItem_NPE;
 import com.evosus.loupos.models.SKU;
 import com.evosus.loupos.models.SKUKitLine;
 import com.evosus.loupos.models.SessionInfo;
 import com.evosus.loupos.models.TSYSMerchant;
-import com.evosus.loupos.models.POS_Transaction;
+import com.evosus.loupos.models.POS_Transaction_NPE;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.WritableMap;
-//import com.google.gson.Gson;
 import com.facebook.react.module.annotations.ReactModule;
 import com.google.gson.Gson;
 import com.pax.poslink.BatchRequest;
@@ -48,7 +47,6 @@ import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
 import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
-//import com.pax.poslink.PaymentReqfuest.CommercialCard;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
@@ -699,7 +697,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(50)
+                .schemaVersion(51)
                 .migration(new MyMigration())
                 .build();
         // Use the config
@@ -776,13 +774,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     realm.commitTransaction();
                     break;
                 case "POS.POS_Transaction":
+                case "POS.POS_Transaction_NPE":
                     realm.beginTransaction();
-                    realm.createOrUpdateAllFromJson(POS_Transaction.class, updatedJsonString);
+                    realm.createOrUpdateAllFromJson(POS_Transaction_NPE.class, updatedJsonString);
                     realm.commitTransaction();
                     break;
                 case "POS.POS_LineItem":
+                case "POS.POS_LineItem_NPE":
                     realm.beginTransaction();
-                    realm.createOrUpdateAllFromJson(POS_LineItem.class, updatedJsonString);
+                    realm.createOrUpdateAllFromJson(POS_LineItem_NPE.class, updatedJsonString);
                     realm.commitTransaction();
                     break;
                 case "Inventory.SKUKitLine":
@@ -881,28 +881,28 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         Log.e(this.getName(), e.getMessage());
                     }
                     break;
-                case "POS.POS_Transaction":
-                    final POS_Transaction pos_transaction = realm.where(POS_Transaction.class)
+                case "POS.POS_Transaction_NPE":
+                    final POS_Transaction_NPE pos_transaction_npe = realm.where(POS_Transaction_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .equalTo("ID_", entityID)
                             .findFirst();
-                    if (pos_transaction != null) {
-                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
-                        Log.d(this.getName(), "Lookup on POS_Transaction _ID for " + entityName);
+                    if (pos_transaction_npe != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction_npe)));
+                        Log.d(this.getName(), "Lookup on POS_Transaction_NPE _ID for " + entityName);
                     } else {
-                        promise.reject("POS_Transaction not found.");
+                        promise.reject("POS_Transaction_NPE not found.");
                     }
                     break;
-                case "POS.POS_LineItem":
-                    final POS_LineItem pos_lineitem = realm.where(POS_LineItem.class)
+                case "POS.POS_LineItem_NPE":
+                    final POS_LineItem_NPE pos_lineitem_npe = realm.where(POS_LineItem_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .equalTo("ID_", entityID)
                             .findFirst();
-                    if (pos_lineitem != null) {
-                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem)));
-                        Log.d(this.getName(), "Lookup on POS_LineItem _ID for " + entityName);
+                    if (pos_lineitem_npe != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_lineitem_npe)));
+                        Log.d(this.getName(), "Lookup on POS_LineItem_NPE _ID for " + entityName);
                     } else {
-                        promise.reject("POS_LineItem not found.");
+                        promise.reject("POS_LineItem_NPE not found.");
                     }
                     break;
                 case "Inventory.SKUKitLine":
@@ -979,26 +979,26 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(sku)));
                 Log.d(this.getName(), "Find All  " + entityName);
                 break;
-            case "POS.POS_Transaction":
-                final RealmResults<POS_Transaction> pos_transaction = search?realm.where(POS_Transaction.class)
+            case "POS.POS_Transaction_NPE":
+                final RealmResults<POS_Transaction_NPE> pos_transaction = search?realm.where(POS_Transaction_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .contains("TrxStatus", searchString, Case.INSENSITIVE)
                         .limit(limit)
                         .findAll():
-                        realm.where(POS_Transaction.class)
+                        realm.where(POS_Transaction_NPE.class)
                                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                                 .limit(limit)
                                 .findAll();
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transaction)));
                 Log.d(this.getName(), "Find All " + entityName);
                 break;
-            case "POS.POS_LineItem":
-                final RealmResults<POS_LineItem> pos_lineitem = search?realm.where(POS_LineItem.class)
+            case "POS.POS_LineItem_NPE":
+                final RealmResults<POS_LineItem_NPE> pos_lineitem = search?realm.where(POS_LineItem_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .contains("Status", searchString, Case.INSENSITIVE)
                         .limit(limit)
                         .findAll():
-                        realm.where(POS_LineItem.class)
+                        realm.where(POS_LineItem_NPE.class)
                                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                                 .limit(limit)
                                 .findAll();
@@ -1042,20 +1042,14 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         } else {
             switch (entityName) {
                 case "ProductSetup.CustomerDisplay":
-                    final RealmResults<CustomerDisplay> customerDisplays = realm.where(CustomerDisplay.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .findAll();
                     realm.beginTransaction();
-                    customerDisplays.deleteAllFromRealm();
+                    realm.delete(CustomerDisplay.class);
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
                     realm.commitTransaction();
                     break;
                 case "Inventory.SKU":
-                    final RealmResults<SKU> SKUs = realm.where(SKU.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .findAll();
                     realm.beginTransaction();
-                    SKUs.deleteAllFromRealm();
+                    realm.delete(SKU.class);
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
                     realm.commitTransaction();
                     break;
@@ -1080,8 +1074,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_Transaction":
-                    final RealmResults<POS_Transaction> POS_Transactions = realm.where(POS_Transaction.class)
+                case "POS.POS_Transaction_NPE":
+                    final RealmResults<POS_Transaction_NPE> POS_Transactions = realm.where(POS_Transaction_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .findAll();
                     realm.beginTransaction();
@@ -1089,8 +1083,8 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_LineItem":
-                    final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+                case "POS.POS_LineItem_NPE":
+                    final RealmResults<POS_LineItem_NPE> POS_LineItems = realm.where(POS_LineItem_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .findAll();
                     realm.beginTransaction();
@@ -1177,20 +1171,18 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_Transaction":
+                case "POS.POS_Transaction_NPE":
                     realm.beginTransaction();
-                    RealmResults<POS_Transaction> transactionsToDelete = realm.where(POS_Transaction.class)
+                    RealmResults<POS_Transaction_NPE> transactionsToDelete = realm.where(POS_Transaction_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .equalTo("ID_", objectID)
                             .findAll();
-                    // Log.d(this.getName(), "objectToDelete: " + transactionsToDelete.asJSON());
                     transactionsToDelete.deleteAllFromRealm();
-                    // Log.d(this.getName(), "Deleted realm object " + entityName);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_LineItem":
+                case "POS.POS_LineItem_NPE":
                     realm.beginTransaction();
-                    RealmResults<POS_LineItem> lineItemsToDelete = realm.where(POS_LineItem.class)
+                    RealmResults<POS_LineItem_NPE> lineItemsToDelete = realm.where(POS_LineItem_NPE.class)
                             .equalTo("EvosusCompanySN", EvosusCompanySN)
                             .equalTo("ID_", objectID)
                             .findAll();
@@ -1261,15 +1253,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 promise.resolve((int)EvosusCompanies);
                 Log.d(this.getName(), "Counted " + EvosusCompanies + ' ' +  entityName);
                 break;
-            case "POS.POS_Transaction":
-                final long POS_Transactions = realm.where(POS_Transaction.class)
+            case "POS.POS_Transaction_NPE":
+                final long POS_Transactions = realm.where(POS_Transaction_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .count();
                 promise.resolve((int)POS_Transactions);
                 Log.d(this.getName(), "Counted " + POS_Transactions + ' ' +  entityName);
                 break;
-            case "POS.POS_LineItem":
-                final long POS_LineItems = realm.where(POS_LineItem.class)
+            case "POS.POS_LineItem_NPE":
+                final long POS_LineItems = realm.where(POS_LineItem_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .count();
                 promise.resolve((int)POS_LineItems);
@@ -1299,15 +1291,15 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         Realm realm = getRealmConfiguration();
         Log.i(this.getName(), "Counting " + entityName);
         switch (entityName) {
-            case "POS.POS_Transaction":
-                final long POS_Transactions = realm.where(POS_Transaction.class)
+            case "POS.POS_Transaction_NPE":
+                final long POS_Transactions = realm.where(POS_Transaction_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .contains("TrxStatus", searchString, Case.INSENSITIVE).count();
                 promise.resolve((int)POS_Transactions);
                 Log.d(this.getName(), "Counted " + POS_Transactions + ' ' +  entityName + " with TrxStatus of " + searchString);
                 break;
-            case "POS.POS_LineItem":
-                final long POS_LineItems = realm.where(POS_LineItem.class)
+            case "POS.POS_LineItem_NPE":
+                final long POS_LineItems = realm.where(POS_LineItem_NPE.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .contains("Status", searchString, Case.INSENSITIVE)
                         .count();
@@ -1335,7 +1327,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         cal.add(Calendar.DATE, -days);
         Date d = cal.getTime();
         Log.d(this.getName(), "Date d: "+ d.toString());
-        RealmResults<POS_Transaction> objectsToDelete = realm.where(POS_Transaction.class)
+        RealmResults<POS_Transaction_NPE> objectsToDelete = realm.where(POS_Transaction_NPE.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("TrxStatus", "Hold")
                 .lessThan("HoldDate", d)
@@ -1355,26 +1347,26 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             put("EvosusCompanySN", EvosusCompanySN);
         }});
         Realm realm = getRealmConfiguration();
-        RealmResults<POS_LineItem> customerHistoryLineItems = realm.where(POS_LineItem.class)
+        RealmResults<POS_LineItem_NPE> customerHistoryLineItems = realm.where(POS_LineItem_NPE.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("CustomerVanityID", customerVanityID)
                 .findAll();
         promise.resolve(customerHistoryLineItems);
     }
 
-    private void deletePOSTransactions(final RealmResults<POS_Transaction> pos_transactions, final String EvosusCompanySN) {
+    private void deletePOSTransactions(final RealmResults<POS_Transaction_NPE> pos_transactions, final String EvosusCompanySN) {
         sendBugsnagBreadcrumb("deletePOSTransactions", new HashMap<String, Object>(){{
             put("customerVanityID", pos_transactions.asJSON());
             put("EvosusCompanySN", EvosusCompanySN);
         }});
         Realm realm = getRealmConfiguration();
         realm.beginTransaction();
-        for (POS_Transaction POS_Transaction: pos_transactions) {
-            RealmResults<POS_LineItem> lineItems = realm.where(POS_LineItem.class)
+        for (POS_Transaction_NPE POS_Transaction_NPE: pos_transactions) {
+            RealmResults<POS_LineItem_NPE> lineItems = realm.where(POS_LineItem_NPE.class)
                     .equalTo("EvosusCompanySN", EvosusCompanySN)
-                    .equalTo("POS_TransactionID", POS_Transaction.getID_())
+                    .equalTo("POS_TransactionID", POS_Transaction_NPE.getID_())
                     .findAll();
-            Log.d(this.getName(), lineItems.size() + " POS_LineItems found for POS_Transaction " + POS_Transaction.getID_());
+            Log.d(this.getName(), lineItems.size() + " POS_LineItems found for POS_Transaction_NPE " + POS_Transaction_NPE.getID_());
             lineItems.deleteAllFromRealm();
         }
         Log.d(this.getName(), " POS_Transactions found to delete: " + pos_transactions.size());
@@ -1391,20 +1383,20 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             put("EvosusCompanySN", EvosusCompanySN);
         }});
         Realm realm = getRealmConfiguration();
-        RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
+        RealmResults<POS_Transaction_NPE> pos_transactions = realm.where(POS_Transaction_NPE.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("TrxStatus", "Complete")
                 .findAll();
         promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
     }
 
-    private RealmResults<POS_Transaction> findSessionTransactions(Realm realm, final String sessionID, final String status, final String EvosusCompanySN) {
+    private RealmResults<POS_Transaction_NPE> findSessionTransactions(Realm realm, final String sessionID, final String status, final String EvosusCompanySN) {
         sendBugsnagBreadcrumb("findSessionTransactions", new HashMap<String, Object>(){{
             put("sessionID", sessionID);
             put("status", status);
             put("EvosusCompanySN", EvosusCompanySN);
         }});
-        RealmResults<POS_Transaction> pos_transactions = realm.where(POS_Transaction.class)
+        RealmResults<POS_Transaction_NPE> pos_transactions = realm.where(POS_Transaction_NPE.class)
                 .equalTo("EvosusCompanySN", EvosusCompanySN)
                 .equalTo("POSStationSessionID", sessionID)
                 .equalTo("TrxStatus", status)
@@ -1425,7 +1417,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             put("EvosusCompanySN", EvosusCompanySN);
         }});
         Realm realm = getRealmConfiguration();
-        RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
+        RealmResults<POS_Transaction_NPE> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         promise.resolve(new Gson().toJson(realm.copyFromRealm(pos_transactions)));
     }
 
@@ -1442,7 +1434,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             put("EvosusCompanySN", EvosusCompanySN);
         }});
         Realm realm = getRealmConfiguration();
-        RealmResults<POS_Transaction> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
+        RealmResults<POS_Transaction_NPE> pos_transactions = findSessionTransactions(realm, sessionID, status, EvosusCompanySN);
         realm.beginTransaction();
         pos_transactions.deleteAllFromRealm();
         realm.commitTransaction();
@@ -1466,7 +1458,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             promise.resolve(false);
         } else {
             Log.d(this.getName(), "POS_TransactionID: " + posTransactionID);
-            final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+            final RealmResults<POS_LineItem_NPE> POS_LineItems = realm.where(POS_LineItem_NPE.class)
                     .equalTo("EvosusCompanySN", EvosusCompanySN)
                     .equalTo("POS_TransactionID", posTransactionID)
                     .findAll();
@@ -1501,13 +1493,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             promise.resolve(false);
         } else {
             Log.d(this.getName(), "POS_TransactionID: " + entityID);
-            final RealmResults<POS_LineItem> POS_LineItems = realm.where(POS_LineItem.class)
+            final RealmResults<POS_LineItem_NPE> POS_LineItems = realm.where(POS_LineItem_NPE.class)
                     .equalTo("EvosusCompanySN", EvosusCompanySN)
                     .equalTo("POS_TransactionID", entityID)
                     .findAll();
             if (POS_LineItems != null) {
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(POS_LineItems)));
-                Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem");
+                Log.d(this.getName(), "Lookup on POS_TransactionID for POS_LineItem_NPE");
             } else {
                 promise.reject("POS_LineItems not found.");
             }
@@ -1622,9 +1614,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             if (oldVersion < 45) {
                 schema.get("CustomerDisplay")
                         .addField("EvosusCompanySN", String.class);
-                schema.get("POS_LineItem")
+                schema.get("POS_LineItem_NPE")
                         .addField("EvosusCompanySN", String.class);
-                schema.get("POS_Transaction")
+                schema.get("POS_Transaction_NPE")
                         .addField("EvosusCompanySN", String.class);
                 schema.get("SKU")
                         .addField("EvosusCompanySN", String.class);
@@ -1633,7 +1625,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 oldVersion++;
             }
             if (oldVersion < 46) {
-                schema.get("POS_Transaction")
+                schema.get("POS_Transaction_NPE")
                         .addField("DepartmentName", String.class);
                 oldVersion++;
             }
@@ -1649,7 +1641,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             }
             if (oldVersion < 49) {
                 try {
-                    RealmObjectSchema posTrxSchema = schema.get("POS_Transaction");
+                    RealmObjectSchema posTrxSchema = schema.get("POS_Transaction_NPE");
                     if (posTrxSchema.hasField("DateCompleted")) {
                         posTrxSchema.removeField("DateCompleted");
                     }
@@ -1677,7 +1669,81 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 }
                 oldVersion++;
             }
+            if (oldVersion < 51) {
+                schema.create("POS_Transaction_NPE")
+                        .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("Subtotal", Double.class)
+                        .addField("SubtotalDisplay", String.class)
+                        .addField("Total", Double.class)
+                        .addField("TotalDisplay", String.class)
+                        .addField("ReturnMode", String.class)
+                        .addField("SKU_Search", String.class)
+                        .addField("ReceiptCompanyName", String.class)
+                        .addField("ReceiptCustomMessage", String.class)
+                        .addField("TrxStatus", String.class)
+                        .addField("PaymentMethod", String.class)
+                        .addField("Tax", Double.class)
+                        .addField("TaxDisplay", String.class)
+                        .addField("Tendered", Double.class)
+                        .addField("TenderedDisplay", String.class)
+                        .addField("ChangeDue", Double.class)
+                        .addField("ChangeDueDisplay", String.class)
+                        .addField("PrintReceipt", Boolean.class)
+                        .addField("EmailReceipt", Boolean.class)
+                        .addField("PaymentAttempts", Integer.class)
+                        .addField("DiscountRate", Double.class)
+                        .addField("DiscountType", String.class)
+                        .addField("SubtotalAfterDiscount", Double.class)
+                        .addField("SubtotalAfterDiscount_Display", String.class)
+                        .addField("SubtotalBeforeDiscount_Display", String.class)
+                        .addField("Discount_Total", Double.class)
+                        .addField("SubtotalBeforeDiscount", Double.class)
+                        .addField("TaxExemptDocumentation", String.class)
+                        .addField("Invoiced", Boolean.class)
+                        .addField("OrderType", String.class)
+                        .addField("Request", String.class)
+                        .addField("NumberOfLineItems", Integer.class)
+                        .addField("ClerkName", String.class)
+                        .addField("InvoiceID", String.class)
+                        .addField("IsProcessed", Boolean.class)
+                        .addField("ActiveListenersCount", Integer.class)
+                        .addField("CardType", String.class)
+                        .addField("CustomerName", String.class)
+                        .addField("CustomerVanityID", String.class)
+                        .addField("TaxableTotal", Double.class)
+                        .addField("TaxCodeID", Integer.class)
+                        .addField("HoldDate", Date.class)
+                        .addField("HasError", Boolean.class)
+                        .addField("Synced", Boolean.class)
+                        .addField("POSStationSessionID", String.class)
+                        .addField("DepartmentID", Integer.class)
+                        .addField("POSStationID", Integer.class);
 
+                schema.create("POS_LineItem_NPE")
+                        .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("POS_TransactionID", String.class)
+                        .addField("LineNumber", Integer.class)
+                        .addField("MySKU", String.class)
+                        .addField("Description", String.class)
+                        .addField("DescriptionFull", String.class)
+                        .addField("SKUType", String.class)
+                        .addField("UnitPrice", Double.class)
+                        .addField("UnitPriceDisplay", String.class)
+                        .addField("Quantity", Double.class)
+                        .addField("Discount", Double.class)
+                        .addField("DiscountDisplay", String.class)
+                        .addField("Subtotal", Double.class)
+                        .addField("SubtotalDisplay", String.class)
+                        .addField("isComment", Boolean.class)
+                        .addField("Comment", String.class)
+                        .addField("ServiceDate", Date.class)
+                        .addField("Status", String.class)
+                        .addField("CustomerVanityID", String.class)
+                        .addField("SKUID", String.class)
+                        .addField("SerialNumber", String.class)
+                        .addField("Taxable", Boolean.class);
+                oldVersion++;
+            }
         }
         @Override
         public int hashCode() {
