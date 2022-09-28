@@ -26,6 +26,7 @@ import com.bugsnag.android.Bugsnag;
 import com.evosus.loupos.models.CustomerDisplay;
 import com.evosus.loupos.models.EvosusCompany;
 import com.evosus.loupos.models.LOUAPIJWT;
+import com.evosus.loupos.models.POSStationSession;
 import com.evosus.loupos.models.POS_LineItem_NPE;
 import com.evosus.loupos.models.SKU;
 import com.evosus.loupos.models.SKUKitLine;
@@ -37,6 +38,7 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.WritableMap;
+//import com.google.gson.Gson;
 import com.facebook.react.module.annotations.ReactModule;
 import com.google.gson.Gson;
 import com.pax.poslink.BatchRequest;
@@ -47,6 +49,7 @@ import com.pax.poslink.ManageRequest;
 import com.pax.poslink.ManageResponse;
 import com.pax.poslink.POSLinkAndroid;
 import com.pax.poslink.PaymentRequest;
+//import com.pax.poslink.PaymentReqfuest.CommercialCard;
 import com.pax.poslink.PaymentResponse;
 import com.pax.poslink.PosLink;
 import com.pax.poslink.ProcessTransResult;
@@ -795,6 +798,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     realm.createOrUpdateAllFromJson(SessionInfo.class, updatedJsonString);
                     realm.commitTransaction();
                     break;
+                case "Accounting.POSStationSession":
+                    realm.beginTransaction();
+                    realm.createOrUpdateAllFromJson(POSStationSession.class, updatedJsonString);
+                    realm.commitTransaction();
+                    break;
             }
         }
         // This is important
@@ -917,6 +925,17 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         promise.reject("SKUKitLine not found.");
                     }
                     break;
+                case "Accounting.POSStationSession":
+                    final POSStationSession posStationSession = realm.where(POSStationSession.class)
+                            .equalTo("_ID", entityID)
+                            .findFirst();
+                    if (posStationSession != null) {
+                        promise.resolve(new Gson().toJson(realm.copyFromRealm(posStationSession)));
+                        Log.d(this.getName(), "Lookup on POSStationSession _ID for " + entityName);
+                    } else {
+                        promise.reject("POSStationSession not found.");
+                    }
+                    break;
             }
 
             // This is important
@@ -1018,6 +1037,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 promise.resolve(new Gson().toJson(realm.copyFromRealm(skuKitLines)));
                 Log.d(this.getName(), "Find All " + entityName);
                 break;
+            case "Accounting.POSStationSession":
+                final RealmResults<POSStationSession> posStationSessions = realm.where(POSStationSession.class)
+                        .limit(limit)
+                        .findAll();
+                promise.resolve(new Gson().toJson(realm.copyFromRealm(posStationSessions)));
+                Log.d(this.getName(), "Find All " + entityName);
+                break;
         }
         promise.resolve(true);
 
@@ -1042,72 +1068,75 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         } else {
             switch (entityName) {
                 case "ProductSetup.CustomerDisplay":
-                    realm.beginTransaction();
-                    realm.delete(CustomerDisplay.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(CustomerDisplay.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "Inventory.SKU":
-                    realm.beginTransaction();
-                    realm.delete(SKU.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(SKU.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "LOUAPI.LOUAPIJWT":
-                    realm.beginTransaction();
-                    realm.delete(LOUAPIJWT.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(LOUAPIJWT.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "TSYS.TSYSMerchant":
-                    realm.beginTransaction();
-                    realm.delete(TSYSMerchant.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(TSYSMerchant.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "AdminConsole.EvosusCompany":
-                    final RealmResults<EvosusCompany> EvosusCompanies = realm.where(EvosusCompany.class)
-                            .equalTo("SerialNumber", EvosusCompanySN)
-                            .findAll();
-                    realm.beginTransaction();
-                    EvosusCompanies.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        final RealmResults<EvosusCompany> EvosusCompanies = r.where(EvosusCompany.class)
+                                .equalTo("SerialNumber", EvosusCompanySN)
+                                .findAll();
+                        EvosusCompanies.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "POS.POS_Transaction_NPE":
-                    final RealmResults<POS_Transaction_NPE> POS_Transactions = realm.where(POS_Transaction_NPE.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .findAll();
-                    realm.beginTransaction();
-                    POS_Transactions.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        final RealmResults<POS_Transaction_NPE> POS_Transactions = r.where(POS_Transaction_NPE.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .findAll();
+                        POS_Transactions.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "POS.POS_LineItem_NPE":
-                    final RealmResults<POS_LineItem_NPE> POS_LineItems = realm.where(POS_LineItem_NPE.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .findAll();
-                    realm.beginTransaction();
-                    POS_LineItems.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        final RealmResults<POS_LineItem_NPE> POS_LineItems = r.where(POS_LineItem_NPE.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .findAll();
+                        POS_LineItems.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "Inventory.SKUKitLine":
-                    final RealmResults<SKUKitLine> SKUKitLines = realm.where(SKUKitLine.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .findAll();
-                    realm.beginTransaction();
-                    SKUKitLines.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        r.delete(SKUKitLine.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "POS.SessionInfo":
-                    final RealmResults<SessionInfo> sessionInfos = realm.where(SessionInfo.class)
-                            .findAll();
-                    realm.beginTransaction();
-                    sessionInfos.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        final RealmResults<SessionInfo> sessionInfos = r.where(SessionInfo.class)
+                                .findAll();
+                        sessionInfos.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
+                    break;
+                case "Accounting.POSStationSession":
+                    realm.executeTransaction(r -> {
+                        r.delete(POSStationSession.class);
+                    });
+                    Log.d(this.getName(), "Deleted realm entity " + entityName);
                     break;
             }
             // This is important
@@ -1134,73 +1163,83 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         } else {
             switch (entityName) {
                 case "ProductSetup.CustomerDisplay":
-                    realm.beginTransaction();
-                    RealmResults<CustomerDisplay> customerDisplaystoDelete = realm.where(CustomerDisplay.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .equalTo("CustomerVanityID", objectID)
-                            .findAll();
-                    customerDisplaystoDelete.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        RealmResults<CustomerDisplay> customerDisplaystoDelete = r.where(CustomerDisplay.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .equalTo("CustomerVanityID", objectID)
+                                .findAll();
+                        customerDisplaystoDelete.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "Inventory.SKU":
-                    RealmResults<SKU> SKUsToDelete = realm.where(SKU.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .equalTo("CustomerVanityID", objectID)
-                            .findAll();
-                    realm.beginTransaction();
-                    SKUsToDelete.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        RealmResults<SKU> SKUsToDelete = r.where(SKU.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .equalTo("CustomerVanityID", objectID)
+                                .findAll();
+                        SKUsToDelete.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "LOUAPI.LOUAPIJWT":
-                    realm.beginTransaction();
-                    realm.delete(LOUAPIJWT.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(LOUAPIJWT.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "TSYS.TSYSMerchant":
-                    realm.beginTransaction();
-                    realm.delete(TSYSMerchant.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(TSYSMerchant.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "AdminConsole.EvosusCompany":
-                    realm.beginTransaction();
-                    realm.delete(EvosusCompany.class);
+                    realm.executeTransaction(r -> {
+                        r.delete(EvosusCompany.class);
+                    });
                     Log.d(this.getName(), "Deleted realm entity " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "POS.POS_Transaction_NPE":
-                    realm.beginTransaction();
-                    RealmResults<POS_Transaction_NPE> transactionsToDelete = realm.where(POS_Transaction_NPE.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .equalTo("ID_", objectID)
-                            .findAll();
-                    transactionsToDelete.deleteAllFromRealm();
-                    realm.commitTransaction();
+                    realm.executeTransaction(r -> {
+                        RealmResults<POS_Transaction_NPE> transactionsToDelete = r.where(POS_Transaction_NPE.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .equalTo("ID_", objectID)
+                                .findAll();
+                        transactionsToDelete.deleteAllFromRealm();
+                    });
                     break;
                 case "POS.POS_LineItem_NPE":
-                    realm.beginTransaction();
-                    RealmResults<POS_LineItem_NPE> lineItemsToDelete = realm.where(POS_LineItem_NPE.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .equalTo("ID_", objectID)
-                            .findAll();
-                    Log.d(this.getName(), "objectToDelete: " + lineItemsToDelete.asJSON());
-                    lineItemsToDelete.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        RealmResults<POS_LineItem_NPE> lineItemsToDelete = r.where(POS_LineItem_NPE.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .equalTo("ID_", objectID)
+                                .findAll();
+                        Log.d(this.getName(), "objectToDelete: " + lineItemsToDelete.asJSON());
+                        lineItemsToDelete.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm object " + entityName);
-                    realm.commitTransaction();
                     break;
                 case "Inventory.SKUKitLine":
-                    realm.beginTransaction();
-                    RealmResults<SKUKitLine> skuKitLinesToDelete = realm.where(SKUKitLine.class)
-                            .equalTo("EvosusCompanySN", EvosusCompanySN)
-                            .equalTo("ID_", objectID)
-                            .findAll();
-                    Log.d(this.getName(), "objectToDelete: " + skuKitLinesToDelete.asJSON());
-                    skuKitLinesToDelete.deleteAllFromRealm();
+                    realm.executeTransaction(r -> {
+                        RealmResults<SKUKitLine> skuKitLinesToDelete = r.where(SKUKitLine.class)
+                                .equalTo("EvosusCompanySN", EvosusCompanySN)
+                                .equalTo("ID_", objectID)
+                                .findAll();
+                        Log.d(this.getName(), "objectToDelete: " + skuKitLinesToDelete.asJSON());
+                        skuKitLinesToDelete.deleteAllFromRealm();
+                    });
                     Log.d(this.getName(), "Deleted realm object " + entityName);
-                    realm.commitTransaction();
+                    break;
+                case "Accounting.POSStationSession":
+                    realm.executeTransaction(r -> {
+                        RealmResults<POSStationSession> posStationSessionsToDelete = r.where(POSStationSession.class)
+                                .equalTo("_ID", objectID)
+                                .findAll();
+                        Log.d(this.getName(), "objectToDelete: " + posStationSessionsToDelete.asJSON());
+                        posStationSessionsToDelete.deleteAllFromRealm();
+                    });
+                    Log.d(this.getName(), "Deleted realm object " + entityName);
                     break;
             }
             realm.close();
@@ -1235,6 +1274,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         Log.d(this.getName(), "Counting " + entityName);
         switch (entityName) {
             case "ProductSetup.CustomerDisplay":
+                realm.executeTransaction(r -> {
+
+                });
                 final long CustomerDisplays = realm.where(CustomerDisplay.class)
                         .equalTo("EvosusCompanySN", EvosusCompanySN)
                         .count();
@@ -1273,6 +1315,12 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .count();
                 promise.resolve((int)SKUKitLines);
                 Log.d(this.getName(), "Counted " + SKUKitLines + ' ' +  entityName);
+                break;
+            case "Accounting.POSStationSession":
+                final long POSStationSessions = realm.where(POSStationSession.class)
+                        .count();
+                promise.resolve((int)POSStationSessions);
+                Log.d(this.getName(), "Counted " + POSStationSessions + ' ' +  entityName);
                 break;
         }
     }
@@ -1718,7 +1766,6 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("POSStationSessionID", String.class)
                         .addField("DepartmentID", Integer.class)
                         .addField("POSStationID", Integer.class);
-
                 schema.create("POS_LineItem_NPE")
                         .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
                         .addField("POS_TransactionID", String.class)
@@ -1742,6 +1789,23 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("SKUID", String.class)
                         .addField("SerialNumber", String.class)
                         .addField("Taxable", Boolean.class);
+                schema.create("POSStationSession")
+                        .addField("_ID", String.class, FieldAttribute.PRIMARY_KEY)
+                        .addField("OpenerName", String.class)
+                        .addField("OpenDateTime", Date.class)
+                        .addField("OpenCashAmount", Double.class)
+                        .addField("OpenOverUnderAmount", Double.class)
+                        .addField("CloserName", String.class)
+                        .addField("CloseDateTime", Date.class)
+                        .addField("CloseCashExpectedAmount", Double.class)
+                        .addField("CloseCashAmount", Double.class)
+                        .addField("CloseOverUnderAmount", Double.class)
+                        .addField("CashLeftInDrawerAmount", Double.class)
+                        .addField("CashAvailableToDepositAmount", String.class)
+                        .addField("CloseOverUnderMessaged", Boolean.class)
+                        .addField("OpenOverUnderMessaged", Boolean.class)
+                        .addField("GUIDString", String.class)
+                        .addField("LastPOSTransactionID", String.class);
                 oldVersion++;
             }
         }
