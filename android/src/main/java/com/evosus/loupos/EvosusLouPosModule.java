@@ -700,7 +700,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // The Realm file will be located in Context.getFilesDir() with name "myrealm.realm"
         RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("evosus.db")
-                .schemaVersion(51)
+                .schemaVersion(52)
                 .migration(new MyMigration())
                 .build();
         // Use the config
@@ -776,13 +776,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     realm.createOrUpdateAllFromJson(EvosusCompany.class, updatedJsonString);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_Transaction":
                 case "POS.POS_Transaction_NPE":
                     realm.beginTransaction();
                     realm.createOrUpdateAllFromJson(POS_Transaction_NPE.class, updatedJsonString);
                     realm.commitTransaction();
                     break;
-                case "POS.POS_LineItem":
                 case "POS.POS_LineItem_NPE":
                     realm.beginTransaction();
                     realm.createOrUpdateAllFromJson(POS_LineItem_NPE.class, updatedJsonString);
@@ -1662,9 +1660,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             if (oldVersion < 45) {
                 schema.get("CustomerDisplay")
                         .addField("EvosusCompanySN", String.class);
-                schema.get("POS_LineItem_NPE")
+                schema.get("POS_LineItem")
                         .addField("EvosusCompanySN", String.class);
-                schema.get("POS_Transaction_NPE")
+                schema.get("POS_Transaction")
                         .addField("EvosusCompanySN", String.class);
                 schema.get("SKU")
                         .addField("EvosusCompanySN", String.class);
@@ -1673,7 +1671,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                 oldVersion++;
             }
             if (oldVersion < 46) {
-                schema.get("POS_Transaction_NPE")
+                schema.get("POS_Transaction")
                         .addField("DepartmentName", String.class);
                 oldVersion++;
             }
@@ -1689,7 +1687,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             }
             if (oldVersion < 49) {
                 try {
-                    RealmObjectSchema posTrxSchema = schema.get("POS_Transaction_NPE");
+                    RealmObjectSchema posTrxSchema = schema.get("POS_Transaction");
                     if (posTrxSchema.hasField("DateCompleted")) {
                         posTrxSchema.removeField("DateCompleted");
                     }
@@ -1765,7 +1763,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("Synced", Boolean.class)
                         .addField("POSStationSessionID", String.class)
                         .addField("DepartmentID", Integer.class)
-                        .addField("POSStationID", Integer.class);
+                        .addField("POSStationID", Integer.class)
+                        .addField("EvosusCompanySN", String.class)
+                        .addField("DepartmentName", String.class);
                 schema.create("POS_LineItem_NPE")
                         .addField("ID_", String.class, FieldAttribute.PRIMARY_KEY)
                         .addField("POS_TransactionID", String.class)
@@ -1786,9 +1786,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("ServiceDate", Date.class)
                         .addField("Status", String.class)
                         .addField("CustomerVanityID", String.class)
+                        .addField("DateCompleted", Date.class)
                         .addField("SKUID", String.class)
                         .addField("SerialNumber", String.class)
-                        .addField("Taxable", Boolean.class);
+                        .addField("Taxable", Boolean.class)
+                        .addField("EvosusCompanySN", String.class);
                 schema.create("POSStationSession")
                         .addField("_ID", String.class, FieldAttribute.PRIMARY_KEY)
                         .addField("OpenerName", String.class)
@@ -1808,6 +1810,46 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                         .addField("LastPOSTransactionID", String.class);
                 oldVersion++;
             }
+            if (oldVersion < 52) {
+                RealmObjectSchema posTrxSchema = schema.get("POS_Transaction_NPE");
+                try {
+                    if (posTrxSchema.hasField("DateCompleted")) {
+                        posTrxSchema.removeField("DateCompleted");
+                    }
+                } catch (Error e) {
+                    sendRealmMigrationError(e);
+                }
+                try {
+                    if (!posTrxSchema.hasField("EvosusCompanySN")) {
+                        posTrxSchema.addField("EvosusCompanySN", String.class);
+                    }
+                } catch (Error e) {
+                    sendRealmMigrationError(e);
+                }
+                try {
+                    if (!posTrxSchema.hasField("DepartmentName")) {
+                        posTrxSchema.addField("DepartmentName", String.class);
+                    }
+                } catch (Error e) {
+                    sendRealmMigrationError(e);
+                }
+                RealmObjectSchema posLineItemSchema = schema.get("POS_LineItem_NPE");
+                try {
+                    if (!posLineItemSchema.hasField("DateCompleted")) {
+                        posLineItemSchema.addField("DateCompleted", Date.class);
+                    }
+                } catch (Error e) {
+                    sendRealmMigrationError(e);
+                }
+                try {
+                    if (!posLineItemSchema.hasField("EvosusCompanySN")) {
+                        posLineItemSchema.addField("EvosusCompanySN", String.class);
+                    }
+                } catch (Error e) {
+                    sendRealmMigrationError(e);
+                }
+                oldVersion++;
+            }
         }
         @Override
         public int hashCode() {
@@ -1821,6 +1863,11 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
             }
             return object instanceof MyMigration;
         }
+    }
+
+    private static void sendRealmMigrationError(Error e) {
+        Bugsnag.notify(e);
+        Log.e("REALM Migration", e.getMessage());
     }
 
     /**
