@@ -57,6 +57,7 @@ public class POS_Transaction_NPE extends RealmObject {
     private Integer POSStationID;
     private String EvosusCompanySN;
     private String DepartmentName;
+    private Date DateCompleted;
 
     public String getID_() {
         return ID_;
@@ -448,5 +449,13 @@ public class POS_Transaction_NPE extends RealmObject {
     
     public void setDepartmentName(String DepartmentName) {
         this.DepartmentName = DepartmentName;
+    }
+
+    public Date getDateCompleted() {
+        return DateCompleted;
+    }
+    
+    public void setDateCompleted(Date DateCompleted) {
+        this.DateCompleted = DateCompleted;
     }
 }
