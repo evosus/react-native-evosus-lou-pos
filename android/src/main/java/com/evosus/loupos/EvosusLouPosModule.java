@@ -361,7 +361,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, Promise promise) {
+    public void creditSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, final boolean overrideDuplicate, Promise promise) {
         sendBugsnagBreadcrumb("creditSale", new HashMap<String, Object>(){{
             put("amount", amount);
             put("referenceNumber", referenceNumber);
@@ -374,6 +374,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
+        if (overrideDuplicate) {
+            overrideDuplicateOnPaymentRequest(paymentRequest);
+        }
         paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
         paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
         paymentRequest.ECRRefNum = referenceNumber;
@@ -386,6 +389,13 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         // Recommend to use single thread pool instead.
         OneShotPaymentTask2 oneShotPaymentTask = new OneShotPaymentTask2(promise, paymentRequest, "SALE", getPOSLink(), getCurrentActivity());
         oneShotPaymentTask.execute();
+    }
+
+    private void overrideDuplicateOnPaymentRequest(PaymentRequest paymentRequest) {
+        PaymentRequest.TransactionBehavior transactionBehavior = new PaymentRequest.TransactionBehavior();
+        transactionBehavior.ForceDuplicate = "1";
+        paymentRequest.TransactionBehavior = transactionBehavior;
+        Log.e("transactionBehavior", transactionBehavior.toString());
     }
 
     /**
@@ -449,7 +459,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void creditRefund(final String amount, final String referenceNumber, Promise promise) {
+    public void creditRefund(final String amount, final String referenceNumber, final boolean overrideDuplicate, Promise promise) {
         sendBugsnagBreadcrumb("creditRefund", new HashMap<String, Object>(){{
             put("amount", amount);
             put("referenceNumber", referenceNumber);
@@ -457,6 +467,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
+        if (overrideDuplicate) {
+            overrideDuplicateOnPaymentRequest(paymentRequest);
+        }
         paymentRequest.TenderType = paymentRequest.ParseTenderType("CREDIT");
         paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
         paymentRequest.ECRRefNum = referenceNumber;
@@ -545,7 +558,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void debitSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, Promise promise) {
+    public void debitSale(final String amount, final String referenceNumber, final String poNum, final String taxAmt, final String tipAmt, final String extData, final boolean overrideDuplicate, Promise promise) {
         sendBugsnagBreadcrumb("debitSale", new HashMap<String, Object>(){{
             put("amount", amount);
             put("referenceNumber", referenceNumber);
@@ -558,6 +571,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
+        if (overrideDuplicate) {
+            overrideDuplicateOnPaymentRequest(paymentRequest);
+        }
         paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
         paymentRequest.TransType = paymentRequest.ParseTransType("SALE");
         paymentRequest.ECRRefNum = referenceNumber;
@@ -580,7 +596,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
      * @param promise
      */
     @ReactMethod
-    public void debitRefund(final String amount, final String referenceNumber, Promise promise) {
+    public void debitRefund(final String amount, final String referenceNumber, final boolean overrideDuplicate, Promise promise) {
         sendBugsnagBreadcrumb("debitRefund", new HashMap<String, Object>(){{
             put("amount", amount);
             put("referenceNumber", referenceNumber);
@@ -589,6 +605,9 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
         if (!validatePOSLink(promise)) return;
 
         PaymentRequest paymentRequest = new PaymentRequest();
+        if (overrideDuplicate) {
+            overrideDuplicateOnPaymentRequest(paymentRequest);
+        }
         paymentRequest.TenderType = paymentRequest.ParseTenderType("DEBIT");
         paymentRequest.TransType = paymentRequest.ParseTransType("RETURN");
         paymentRequest.ECRRefNum = referenceNumber;
@@ -2479,6 +2498,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
                     }
                     else if (msg.obj instanceof PaymentResponse) {
                         PaymentResponse paymentResponse = (PaymentResponse) msg.obj;
+                        Log.e("PaymentResponse", paymentResponse.toString());
 //                        Toast.makeText(getReactApplicationContext(), paymentResponse.ResultCode + '\n' + paymentResponse.ResultTxt, Toast.LENGTH_LONG).show();
                         WritableMap map = Arguments.createMap();
                         map.putString("ResultCode", paymentResponse.ResultCode);
