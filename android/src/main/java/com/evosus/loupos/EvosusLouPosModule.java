@@ -2740,7 +2740,7 @@ public class EvosusLouPosModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void getUUID(final Promise promise) {
         sendBugsnagBreadcrumb("getUUID");
-        promise.resolve(String.valueOf(UUID.randomUUID()));
+        promise.resolve(String.valueOf(Math.abs(UUID.randomUUID().getMostSignificantBits())));
     }
 
     private static void sendBugsnagBreadcrumb(String methodName) {
